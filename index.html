@@ -3,1694 +3,296 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
-<title>Packet Quest</title>
+<title>The Virtual Networking Universe</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Chakra+Petch:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Chakra+Petch:wght@500;600;700&family=JetBrains+Mono:wght@500;700&display=swap">
 <style>
-/* Layout: full-screen wormhole canvas behind a cockpit HUD; mission select, email intro and celebration are overlays above it.
-   Deliberately single-theme: the learner is inside the network. */
+/* Layout: one calm column of clearly separated sections. Hero (text + universe map) → profile → paths → collections → progress → instructor.
+   Deliberately single-theme dark, matching the missions. */
 :root{
-  --void:#03060f; --glass:rgba(8,16,34,.62); --hud:#9fe4ff; --hud-dim:rgba(159,228,255,.4); --hud-faint:rgba(159,228,255,.14);
-  --fg:#e9f4ff; --muted:#8ea7c4;
-  --l7:#8fb8ff; --l4:#ffc35a; --l3:#3fe0c8; --l2:#c3a2ff; --l1:#ffe9a8; --alert:#ff6f61; --fiber:#d7f6ff; --sea:#4f8dff;
-  --gold:#ffc35a; --silver:#d5e6f7; --bronze:#d9925a;
+  --void:#050914; --panel:#0c1426; --panel-2:#111c33; --line:rgba(159,228,255,.14); --line-2:rgba(159,228,255,.3);
+  --hud:#9fe4ff; --fg:#e9f2ff; --muted:#93a6c2;
+  --pq:#ffc35a; --th:#ff8a7a; --nc:#3fe0c8; --si:#8fb8ff; --soc:#c3a2ff;
   --display:"Chakra Petch","Trebuchet MS",system-ui,sans-serif;
   --body:"Atkinson Hyperlegible","Segoe UI",system-ui,sans-serif;
   --mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
   color-scheme:dark;
 }
-html,body{height:100%;margin:0;background:var(--void);color:var(--fg)}
-body{font-family:var(--body);font-size:15px;line-height:1.5;overflow-x:hidden}
+html,body{margin:0;background:var(--void);color:var(--fg)}
+body{font-family:var(--body);font-size:16px;line-height:1.55;background:radial-gradient(1200px 600px at 75% -10%,rgba(63,224,200,.07),transparent 60%),radial-gradient(900px 500px at 0% 20%,rgba(143,184,255,.06),transparent 60%),var(--void)}
 *{box-sizing:border-box}
-[hidden]{display:none!important}
-#tun,#confetti{position:fixed;inset:0;width:100%;height:100%;display:block;pointer-events:none}
-#tun{z-index:0} #confetti{z-index:8}
-body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:3;
-  background:repeating-linear-gradient(0deg,rgba(159,228,255,.03) 0 1px,transparent 1px 3px),radial-gradient(ellipse at center,transparent 55%,rgba(0,0,0,.55) 100%)}
-button{font:inherit}
-button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--l4);outline-offset:2px}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--pq);outline-offset:3px}
+.wrap{max-width:1120px;margin:0 auto;padding-inline:20px;padding-block:18px 64px;display:grid;gap:72px}
+@media (max-width:640px){.wrap{gap:52px;padding-inline:16px}}
+.eb{margin:0;font:600 .74rem var(--display);letter-spacing:.24em;text-transform:uppercase;color:var(--muted)}
+h2{margin:0;font:700 clamp(1.4rem,3vw,1.9rem)/1.15 var(--display);letter-spacing:.04em;text-wrap:balance}
+.sechead{display:grid;gap:6px;margin-bottom:22px}
+.sechead p.lead{margin:0;color:var(--muted);max-width:62ch}
 
-/* ---------- HUD ---------- */
-.hud{position:relative;z-index:1;min-height:100%;display:grid;gap:12px;padding-inline:16px;padding-block:14px 20px;
-  grid-template-columns:190px minmax(0,1fr) 330px;grid-template-rows:auto minmax(300px,1fr) auto;
-  grid-template-areas:"top top top" "alt core read" "alt comms read";max-width:1500px;margin:0 auto}
-@media (max-width:900px){.hud{grid-template-columns:minmax(0,1fr);grid-template-rows:none;grid-template-areas:"top" "core" "comms" "read" "alt"}}
-.panel{position:relative;background:var(--glass);border:1px solid var(--hud-faint);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);padding:12px 14px;min-width:0}
-.panel::before,.panel::after{content:"";position:absolute;width:14px;height:14px;border:2px solid var(--hud);pointer-events:none}
-.panel::before{top:-1px;left:-1px;border-right:0;border-bottom:0}
-.panel::after{bottom:-1px;right:-1px;border-left:0;border-top:0}
-.lbl{font:600 .68rem var(--display);letter-spacing:.18em;text-transform:uppercase;color:var(--hud-dim);margin:0 0 8px}
-.lbl b{color:var(--hud);font-weight:600}
-.top{grid-area:top;display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:18px;align-items:center}
-@media (max-width:900px){.top{grid-template-columns:minmax(0,1fr) auto}.route{grid-column:1/-1;order:3}}
-.brand h1{font:700 1.2rem/1 var(--display);letter-spacing:.14em;text-transform:uppercase;margin:0;color:var(--hud)}
-.brand p{margin:4px 0 0;font:600 .68rem var(--display);letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
-.brand p b{color:var(--l4);font-weight:600}
-.controls{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end;align-items:center}
-.xp{font:700 .8rem var(--display);letter-spacing:.14em;color:var(--l4);padding:6px 10px;border:1px solid rgba(255,195,90,.45);white-space:nowrap}
-.xp small{color:var(--muted);font-weight:600;margin-left:8px}
-.hbtn{background:transparent;border:1px solid var(--hud-dim);color:var(--hud-dim);padding:6px 10px;font:600 .7rem var(--display);letter-spacing:.14em;text-transform:uppercase;cursor:pointer}
-.hbtn[aria-pressed="true"]{color:var(--void);background:var(--hud);border-color:var(--hud)}
-.hbtn:hover{color:var(--hud);border-color:var(--hud)}
-.hbtn[aria-pressed="true"]:hover{color:var(--void)}
-.route{position:relative;height:46px;margin-inline:26px}
-.route .track{position:absolute;left:0;right:0;top:14px;height:2px;background:var(--hud-faint)}
-.route .seg{position:absolute;top:-2px;font:600 .58rem var(--display);letter-spacing:.14em;color:var(--l3);transform:translateX(-50%);white-space:nowrap}
-.route .tick{position:absolute;top:9px;width:12px;height:12px;border:2px solid var(--hud-dim);background:var(--void);transform:translateX(-50%) rotate(45deg)}
-.route .tick.on{border-color:var(--l4);background:var(--l4)}
-.route .tl{position:absolute;top:26px;transform:translateX(-50%);font:600 .62rem var(--display);letter-spacing:.1em;color:var(--muted);white-space:nowrap}
-.route .you{position:absolute;top:2px;width:2px;height:26px;background:var(--l4);box-shadow:0 0 10px var(--l4);transform:translateX(-50%)}
-@media (max-width:560px){.route .seg{display:none}.route .tl{font-size:.5rem;letter-spacing:.02em}}
+/* top bar */
+.top{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
+.mark{display:flex;align-items:center;gap:10px;text-decoration:none;font:700 1rem var(--display);letter-spacing:.2em}
+.mark svg{width:28px;height:28px}
+.toplinks{display:flex;gap:18px;flex-wrap:wrap}
+.toplinks a{font:600 .78rem var(--display);letter-spacing:.14em;text-transform:uppercase;color:var(--muted);text-decoration:none}
+.toplinks a:hover{color:var(--hud)}
 
-.alt{grid-area:alt;align-self:start}
-.floors{list-style:none;margin:0;padding:0;display:grid;gap:3px}
-.floors li{display:grid;grid-template-columns:24px 1fr;gap:8px;align-items:center;padding:5px 6px;border-left:2px solid var(--hud-faint);transition:all .25s}
-.floors .n{font:700 1rem var(--display);color:var(--hud-dim);text-align:center}
-.floors .nm{font:600 .74rem/1.15 var(--display);letter-spacing:.08em;text-transform:uppercase}
-.floors .pdu{display:block;font:500 .62rem var(--mono);text-transform:none;letter-spacing:0;color:var(--muted)}
-.floors li.locked{opacity:.28}
-.floors li.locked .pdu::after{content:" // LOCKED"}
-.floors li.here{border-left-color:var(--l4);background:linear-gradient(90deg,rgba(255,195,90,.18),transparent)}
-.floors li.here .n{color:var(--l4)}
-.ceil{font:600 .62rem var(--display);letter-spacing:.14em;color:var(--alert);text-transform:uppercase;margin:8px 0 0}
-@media (max-width:900px){.floors{grid-template-columns:repeat(7,minmax(0,1fr))}.floors li{grid-template-columns:1fr;text-align:center;border-left:0;border-bottom:2px solid var(--hud-faint)}.floors li.here{border-bottom-color:var(--l4)}.floors .nm{font-size:.55rem}.floors .pdu{display:none}}
-
-.core{grid-area:core;position:relative;display:grid;place-items:center;min-height:300px}
-@media (max-width:900px){.core{min-height:280px}}
-.core svg{width:min(100%,420px);height:auto;overflow:visible}
-.ring{transform-box:fill-box;transform-origin:center;animation:ringIn .55s cubic-bezier(.2,.9,.3,1.2)}
-.ring.leaving{animation:ringOut .55s ease-in forwards}
-.spin{transform-box:fill-box;transform-origin:center;animation:spin 18s linear infinite}
-.spin.rev{animation-direction:reverse;animation-duration:26s}
-@keyframes ringIn{from{transform:scale(1.8);opacity:0}to{transform:none;opacity:1}}
-@keyframes ringOut{to{transform:scale(2.2);opacity:0}}
+/* hero */
+.hero{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:40px;align-items:center}
+@media (max-width:860px){.hero{grid-template-columns:minmax(0,1fr)}}
+.hero h1{margin:10px 0 16px;font:700 clamp(2.3rem,6vw,4rem)/1.02 var(--display);letter-spacing:.03em;text-wrap:balance}
+.hero h1 span{display:block;color:var(--hud)}
+.hero p.lead{margin:0;font-size:1.12rem;color:var(--muted);max-width:52ch}
+.ctas{display:flex;flex-wrap:wrap;gap:12px;margin-top:26px}
+.btn{display:inline-flex;align-items:center;gap:8px;font:700 .86rem var(--display);letter-spacing:.14em;text-transform:uppercase;text-decoration:none;padding:13px 20px;border-radius:4px;border:1px solid transparent;cursor:pointer}
+.btn.primary{background:var(--pq);color:#140e02}
+.btn.ghost{border-color:var(--line-2);color:var(--fg);background:transparent}
+.btn.ghost:hover{border-color:var(--hud)}
+.map{width:100%;height:auto;display:block}
+.map .orbit{fill:none;stroke:var(--line);stroke-dasharray:3 6}
+.map .edge{stroke:var(--line-2);stroke-width:1.5}
+.map .world circle.core{transition:transform .25s}
+.map a:hover circle.core,.map a:focus circle.core{transform:scale(1.12)}
+.map .lbl{font:700 12px var(--display);letter-spacing:.12em;fill:var(--fg)}
+.map .sub{font:500 10px var(--body);fill:var(--muted)}
+.map .you{font:700 11px var(--display);letter-spacing:.2em;fill:var(--void)}
+@media (prefers-reduced-motion:no-preference){.map .spin{transform-box:fill-box;transform-origin:center;animation:spin 90s linear infinite}}
+body.calm .map .spin{animation:none}
 @keyframes spin{to{transform:rotate(360deg)}}
-.rl{font:700 9px var(--display);letter-spacing:.2em}
-.loc{position:absolute;left:0;top:0;font:600 .68rem var(--display);letter-spacing:.18em;text-transform:uppercase;color:var(--hud-dim)}
-.loc b{display:block;font-size:1rem;color:var(--hud);letter-spacing:.12em}
-.status{position:absolute;right:0;top:0;text-align:right;font:600 .68rem var(--display);letter-spacing:.18em;text-transform:uppercase;color:var(--hud-dim)}
-.status b{display:block;font-size:1rem;color:var(--l4)}
-.flash{position:absolute;left:50%;bottom:4px;transform:translateX(-50%);font:700 clamp(.9rem,2.4vw,1.25rem) var(--display);letter-spacing:.26em;text-transform:uppercase;color:var(--l4);text-shadow:0 0 14px rgba(255,195,90,.7);white-space:nowrap;opacity:0;transition:opacity .25s;pointer-events:none}
-.flash.on{opacity:1}
-.count{position:absolute;inset:0;display:grid;place-items:center;font:700 clamp(4rem,14vw,8rem) var(--display);color:var(--l4);text-shadow:0 0 30px rgba(255,195,90,.8);pointer-events:none}
-.ping{position:absolute;left:50%;top:13%;transform:translateX(-50%);font:700 .8rem var(--display);letter-spacing:.2em;color:var(--l3);border:1px solid var(--l3);padding:4px 10px;background:rgba(3,6,15,.75);white-space:nowrap}
-.queue{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(92%,340px);border:1px solid var(--alert);background:rgba(20,6,10,.82);padding:12px 14px;display:grid;gap:8px}
-.queue .lbl{color:var(--alert);margin:0}
-.queue .qbar{height:12px;border:1px solid rgba(255,111,97,.5);position:relative}
-.queue .qbar i{position:absolute;inset:1px auto 1px 1px;background:repeating-linear-gradient(90deg,var(--alert) 0 6px,transparent 6px 8px);transition:width .2s}
-.queue .qpos{font:700 1.5rem var(--mono);color:var(--fg)}
-.queue .qpos small{font:600 .7rem var(--display);letter-spacing:.14em;color:var(--muted);display:block}
 
-.read{grid-area:read;align-self:start;display:grid;gap:12px}
-.navmap svg{width:100%;height:auto;display:block}
-.navmap .city{font:600 7px var(--display);letter-spacing:.08em;fill:var(--muted)}
-.navstats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:8px}
-.navstats div{border-left:2px solid var(--sea);padding-left:8px}
-.navstats span{display:block;font:600 .6rem var(--display);letter-spacing:.16em;color:var(--muted);text-transform:uppercase}
-.navstats b{font:700 1.05rem var(--mono);color:var(--fg);font-variant-numeric:tabular-nums}
-.ttl{display:grid;gap:6px}
-.ttl .v{font:700 1.6rem/1 var(--mono);color:var(--l4)}
-.ttl .v s{font-size:.9rem;color:var(--muted);margin-right:8px}
-.bar{height:6px;background:var(--hud-faint);position:relative}
-.bar i{position:absolute;inset:0 auto 0 0;background:var(--l4);box-shadow:0 0 10px var(--l4);transition:width .6s}
-.hdr{border-left:3px solid;padding:6px 0 6px 10px;animation:fadeIn .4s}
-.hdr.l2{border-color:var(--l2)} .hdr.l3{border-color:var(--l3)} .hdr.l4{border-color:var(--l4)} .hdr.l7{border-color:var(--l7)} .hdr.l1{border-color:var(--l1)}
-.hdr h4{margin:0 0 4px;font:700 .66rem var(--display);letter-spacing:.18em;text-transform:uppercase}
-.hdr.l2 h4{color:var(--l2)} .hdr.l3 h4{color:var(--l3)} .hdr.l4 h4{color:var(--l4)} .hdr.l7 h4{color:var(--l7)} .hdr.l1 h4{color:var(--l1)}
-@keyframes fadeIn{from{opacity:0;transform:translateX(8px)}}
-.kv{display:grid;grid-template-columns:auto minmax(0,1fr);gap:1px 10px;margin:0;font-size:.78rem}
-.kv dt{color:var(--muted)} .kv dd{margin:0;font-family:var(--mono);text-align:right;overflow-wrap:anywhere}
-.kv dd s{color:var(--muted);margin-right:6px}
-.kv dd.chg{color:var(--l4)}
-.unknown{color:var(--alert);animation:blink 1s steps(2) infinite}
-@keyframes blink{50%{opacity:.3}}
-.payload{font:.74rem/1.4 var(--mono);white-space:pre-wrap;overflow-wrap:anywhere;margin:0;color:var(--l7)}
-.payload.cipher{color:var(--l2)}
-.hexrow{display:grid;grid-template-columns:86px minmax(0,1fr);gap:6px;font-size:.68rem;margin-top:3px}
-.hexrow span{color:var(--muted);font-family:var(--display);letter-spacing:.06em}
-.hexrow code{font-family:var(--mono);overflow-wrap:anywhere}
-.hexrow.c2 code{color:var(--l2)} .hexrow.c3 code{color:var(--l3)} .hexrow.c4 code{color:var(--l4)} .hexrow.c7 code{color:var(--l7)} .hexrow.c0 code{color:var(--muted)}
-.note{font-size:.7rem;color:var(--muted);margin:6px 0 0}
-.empty{font:.78rem var(--mono);color:var(--muted)}
+/* profile */
+.profile{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:24px;display:grid;gap:18px}
+.prow{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px;align-items:end}
+@media (max-width:860px){.prow{grid-template-columns:1fr 1fr}}
+@media (max-width:520px){.prow{grid-template-columns:1fr}}
+.field{display:grid;gap:6px;min-width:0}
+.field label,.field .flabel{font:600 .7rem var(--display);letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+.field input{background:var(--void);border:1px solid var(--line-2);color:var(--fg);padding:11px 12px;font:500 1rem var(--mono);border-radius:4px;width:100%;min-width:0}
+#callsign{text-transform:uppercase;letter-spacing:.12em}
+.seg{display:flex;border:1px solid var(--line-2);border-radius:4px;overflow:hidden}
+.seg button{flex:1;background:transparent;border:0;color:var(--muted);padding:11px 8px;font:700 .76rem var(--display);letter-spacing:.12em;text-transform:uppercase;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--hud);color:var(--void)}
+.hint{margin:0;color:var(--muted);font-size:.92rem;max-width:90ch;border-left:2px solid var(--hud);padding-left:12px}
+.hint b{color:var(--fg)}
+.saved{font-size:.8rem;color:var(--nc);min-height:1.2em;margin:0}
 
-.comms{grid-area:comms;display:grid;gap:10px;width:100%;max-width:820px;justify-self:center}
-.comms h2{margin:0;font:600 1.2rem var(--display);letter-spacing:.06em;text-wrap:balance}
-.comms h2 small{display:block;font:600 .64rem var(--display);letter-spacing:.2em;text-transform:uppercase;color:var(--l4);margin-bottom:2px}
-.narr{margin:0;max-width:72ch;font-size:1rem}
-pre.cli{font:.72rem/1.45 var(--mono);background:rgba(3,6,15,.75);border:1px solid var(--hud-faint);padding:8px 10px;overflow-x:auto;margin:0;color:var(--hud)}
-.q{display:grid;gap:8px}
-.q .prompt{margin:0;font-weight:700;color:var(--hud)}
-.opts{display:grid;gap:6px}
-.chips{display:flex;flex-wrap:wrap;gap:6px}
-.opt{position:relative;text-align:left;background:rgba(159,228,255,.05);border:1px solid var(--hud-dim);color:var(--fg);padding:9px 12px 9px 26px;cursor:pointer;clip-path:polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px)}
-.opt::before{content:"›";position:absolute;left:10px;color:var(--hud)}
-.chips .opt{padding:6px 12px 6px 24px;font-size:.88rem}
-.opt:hover:not(:disabled){background:rgba(159,228,255,.12);border-color:var(--hud)}
-.opt[aria-pressed="true"]{border-color:var(--l4);background:rgba(255,195,90,.16)}
-.opt.wrong{border-color:var(--alert);background:rgba(255,111,97,.14)}
-.opt.right{border-color:var(--l3);background:rgba(63,224,200,.14)}
-.opt:disabled{cursor:default}
-.fb{margin:0;padding:8px 12px;border-left:3px solid;font-size:.95rem}
-.fb.ok{border-color:var(--l3);background:rgba(63,224,200,.08)}
-.fb.no{border-color:var(--alert);background:rgba(255,111,97,.08)}
-.fb b{font-family:var(--display);letter-spacing:.12em;text-transform:uppercase;font-size:.8rem}
-.fb .gain{float:right;font:700 .8rem var(--display);color:var(--l4);letter-spacing:.1em}
-.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
-.go{background:var(--l4);color:var(--void);border:0;padding:10px 18px;font:700 .82rem var(--display);letter-spacing:.16em;text-transform:uppercase;cursor:pointer;clip-path:polygon(10px 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%,0 10px)}
-.go:disabled{opacity:.45;cursor:wait}
-.go.alt{background:transparent;color:var(--hud);outline:1px solid var(--hud-dim);outline-offset:-1px}
+/* paths */
+.paths{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+@media (max-width:960px){.paths{grid-template-columns:1fr 1fr}}
+@media (max-width:560px){.paths{grid-template-columns:1fr}}
+.path{display:grid;gap:12px;align-content:start;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:20px;text-decoration:none;transition:border-color .2s,transform .2s}
+.path:hover{border-color:var(--line-2);transform:translateY(-2px)}
+.path .who{font:600 .68rem var(--display);letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+.path h3{margin:0;font:700 1.15rem var(--display);letter-spacing:.03em}
+.path p{margin:0;font-size:.9rem;color:var(--muted)}
+.steps{display:flex;gap:6px;flex-wrap:wrap}
+.steps i{width:12px;height:12px;border-radius:50%;border:2px solid var(--c,var(--hud));display:block}
+.steps i.done{background:var(--c,var(--hud))}
+.path .go{font:700 .74rem var(--display);letter-spacing:.14em;text-transform:uppercase;color:var(--hud)}
 
-/* ---------- Overlays ---------- */
-.overlay{position:fixed;inset:0;z-index:5;overflow-y:auto;background:rgba(3,6,15,.72);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);padding-inline:16px;padding-block:28px}
-.ovin{max-width:1060px;margin:0 auto;display:grid;gap:22px}
-.hero .eb{font:600 .72rem var(--display);letter-spacing:.3em;text-transform:uppercase;color:var(--hud-dim);margin:0}
-.hero h1{font:700 clamp(2.4rem,7vw,4.4rem)/1 var(--display);letter-spacing:.12em;text-transform:uppercase;margin:6px 0 8px;color:var(--fg);text-shadow:0 0 24px rgba(159,228,255,.45)}
-.hero h1 span{color:var(--l4)}
-.hero p{margin:0;max-width:60ch;color:var(--muted);font-size:1.05rem}
-.setup{position:sticky;top:-28px;z-index:2;display:flex;flex-wrap:wrap;gap:16px;align-items:end;margin-inline:-16px;padding:14px 16px;background:rgba(3,6,15,.92);border-block:1px solid var(--hud-faint);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
-#cases{grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}
-.field{display:grid;gap:4px}
-.field label{font:600 .66rem var(--display);letter-spacing:.18em;text-transform:uppercase;color:var(--hud-dim)}
-.field input,.field textarea{background:rgba(3,6,15,.7);border:1px solid var(--hud-dim);color:var(--fg);padding:9px 11px;font:500 1rem var(--mono);min-width:0;width:100%}
-.field textarea{resize:vertical;min-height:70px;font-family:var(--body)}
-.field input[readonly]{color:var(--muted);border-style:dashed}
-#callsign{text-transform:uppercase;letter-spacing:.12em;width:min(100%,260px)}
-.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:16px}
-.mcard{display:grid;gap:10px;align-content:start;text-align:left;color:var(--fg);cursor:pointer;padding:18px 18px 16px}
-.mcard:hover:not(:disabled){border-color:var(--hud)}
-.mcard .num{font:700 .7rem var(--display);letter-spacing:.24em;color:var(--l4);text-transform:uppercase}
-.mcard h3{margin:0;font:700 1.5rem var(--display);letter-spacing:.06em;text-transform:uppercase}
-.mcard p{margin:0;color:var(--muted)}
-.mcard .meta{display:flex;flex-wrap:wrap;gap:8px;font:600 .66rem var(--display);letter-spacing:.14em;text-transform:uppercase;color:var(--hud-dim)}
-.mcard .meta span{border:1px solid var(--hud-faint);padding:2px 8px}
-.mcard .best{font:700 .72rem var(--display);letter-spacing:.14em;color:var(--l4)}
-.mcard .cta{font:700 .8rem var(--display);letter-spacing:.18em;color:var(--hud);text-transform:uppercase}
-.mcard:disabled{opacity:.45;cursor:not-allowed}
-.mcard svg{width:100%;height:84px;display:block}
+/* collections */
+.cols{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+.cols.soon{grid-template-columns:repeat(2,minmax(0,1fr));margin-top:18px}
+@media (max-width:900px){.cols,.cols.soon{grid-template-columns:minmax(0,1fr)}}
+.col{position:relative;display:grid;gap:14px;align-content:start;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:24px;text-decoration:none;overflow:hidden;transition:border-color .2s,transform .2s}
+.col::before{content:"";position:absolute;inset:0 0 auto 0;height:4px;background:var(--c)}
+a.col:hover{border-color:var(--c);transform:translateY(-2px)}
+.col .ic{width:46px;height:46px}
+.col h3{margin:0;font:700 1.45rem var(--display);letter-spacing:.04em}
+.col .tagline{margin:0;color:var(--muted)}
+.col ul{margin:0;padding-left:1.1em;font-size:.88rem;color:var(--fg);display:grid;gap:2px}
+.col ul li::marker{color:var(--c)}
+.pbar{height:6px;background:var(--line);border-radius:3px;overflow:hidden}
+.pbar i{display:block;height:100%;background:var(--c);width:0;transition:width .6s}
+.pmeta{display:flex;justify-content:space-between;font:600 .74rem var(--display);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.col .enter{font:700 .8rem var(--display);letter-spacing:.14em;text-transform:uppercase;color:var(--c)}
+.col.dim{opacity:.72}
+.col.dim .enter{color:var(--muted)}
+.role{display:inline-block;font:700 .64rem var(--display);letter-spacing:.14em;text-transform:uppercase;border:1px solid var(--c);color:var(--c);padding:3px 8px;border-radius:3px;justify-self:start}
 
-.introwrap{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:20px;align-items:center;transition:opacity .9s}
-@media (max-width:820px){.introwrap{grid-template-columns:minmax(0,1fr)}}
-.desk svg{width:100%;height:auto;display:block;transition:transform 1.3s cubic-bezier(.6,0,.9,.4),opacity 1.3s;transform-origin:54% 42%}
-.introwrap.zoom .desk svg{transform:scale(7);opacity:0}
-.introwrap.zoom .compose{opacity:0;transform:translateY(20px)}
-.compose{display:grid;gap:10px;transition:opacity .5s,transform .5s}
-.compose .ttlbar{display:flex;justify-content:space-between;font:600 .7rem var(--display);letter-spacing:.18em;text-transform:uppercase;color:var(--hud-dim)}
-.screenglow{animation:glow 3s ease-in-out infinite}
-@keyframes glow{50%{opacity:.75}}
+/* progress */
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+@media (max-width:760px){.stats{grid-template-columns:1fr 1fr}}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px}
+.stat span{display:block;font:600 .68rem var(--display);letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+.stat b{font:700 1.9rem var(--mono);font-variant-numeric:tabular-nums}
+.badges{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.badge{font:600 .72rem var(--display);letter-spacing:.1em;text-transform:uppercase;padding:5px 10px;border:1px solid var(--line-2);border-radius:999px;color:var(--fg)}
+.badge.none{color:var(--muted);border-style:dashed}
 
-.cele{display:grid;gap:18px;justify-items:center;text-align:center;max-width:760px;margin:0 auto}
-.cele .eb{font:700 .8rem var(--display);letter-spacing:.32em;text-transform:uppercase;color:var(--l3);margin:0}
-.cele h2{font:700 clamp(2rem,6vw,3.4rem)/1.05 var(--display);letter-spacing:.1em;text-transform:uppercase;margin:0;text-shadow:0 0 26px rgba(255,195,90,.55);color:var(--l4)}
-.cele .greet{font:700 1.3rem var(--display);letter-spacing:.06em;margin:0}
-.cele .sub{margin:0;color:var(--muted);max-width:56ch}
-.badge{width:150px;height:150px;animation:badgeIn 1s cubic-bezier(.2,1.4,.4,1) .4s both}
-@keyframes badgeIn{from{transform:scale(0) rotate(-120deg);opacity:0}}
-.tier{font:700 .78rem var(--display);letter-spacing:.24em;text-transform:uppercase}
-.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;width:100%}
-.tile{text-align:left}
-.tile span{display:block;font:600 .62rem var(--display);letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
-.tile b{font:700 1.5rem var(--mono);color:var(--fg);font-variant-numeric:tabular-nums}
-.learned{text-align:left;width:100%}
-.learned ul{margin:0;padding-left:1.2em;display:grid;gap:4px}
-/* ---------- Case files ---------- */
-.casefile{display:grid;gap:8px}
-.clues{list-style:none;margin:0;padding:0;display:grid;gap:6px}
-.clues li{border-left:2px solid var(--hud-faint);padding:5px 8px;font-size:.82rem;color:var(--muted)}
-.clues li.found{border-left-color:var(--l3);color:var(--fg);background:linear-gradient(90deg,rgba(63,224,200,.12),transparent);animation:fadeIn .5s}
-.clues li b{display:block;font:700 .6rem var(--display);letter-spacing:.16em;text-transform:uppercase;color:var(--hud-dim)}
-.clues li.found b{color:var(--l3)}
-.fict{font-size:.68rem;color:var(--muted);margin:0}
-.ev{display:grid;gap:8px;font-size:.82rem}
-.ev p{margin:0}
-.evt{width:100%;border-collapse:collapse;font-size:.72rem}
-.evt th{text-align:left;font:600 .58rem var(--display);letter-spacing:.12em;text-transform:uppercase;color:var(--hud-dim);padding:3px 4px;border-bottom:1px solid var(--hud-faint)}
-.evt td{font-family:var(--mono);padding:3px 4px;border-bottom:1px dashed var(--hud-faint);vertical-align:top}
-.evt tr.hot td{color:var(--alert)}
-.evt tr.ok td{color:var(--l3)}
-.evwrap{overflow-x:auto}
-.mock{background:#eef2f8;color:#18202e;border-radius:6px;padding:10px 12px;display:grid;gap:6px;font-size:.8rem;line-height:1.4}
-.mock .hl{font-size:.74rem;color:#4a5568;overflow-wrap:anywhere}
-.mock .hl b{color:#18202e}
-.mock .mono{font-family:var(--mono);font-size:.66rem;color:#6b4a00;background:#fff3d6;padding:4px 6px;border-radius:3px}
-.mock hr{border:0;border-top:1px solid #cbd3df;margin:2px 0}
-.mock .fakebtn{justify-self:start;background:#1f5fbf;color:#fff;border-radius:4px;padding:6px 12px;font-weight:700}
-.mock .att{font-size:.74rem;border:1px dashed #94a3b8;border-radius:4px;padding:5px 8px}
-.mock .field{display:block;border:1px solid #94a3b8;border-radius:4px;padding:6px 8px;color:#64748b;background:#fff}
-.reveal{justify-self:start;background:transparent;border:1px solid var(--l4);color:var(--l4);padding:5px 10px;font:700 .7rem var(--display);letter-spacing:.14em;text-transform:uppercase;cursor:pointer}
-.revealed{font-family:var(--mono);font-size:.74rem;color:var(--alert);overflow-wrap:anywhere}
-.rules{display:grid;gap:4px;font-family:var(--mono);font-size:.74rem}
-.rules div{border:1px solid var(--hud-faint);padding:5px 8px}
-.rules .deny{border-color:var(--alert);color:var(--alert)}
-.rules .permit{border-color:var(--l3);color:var(--l3)}
-.sechead{font:600 .74rem var(--display);letter-spacing:.26em;text-transform:uppercase;color:var(--hud);margin:6px 0 -8px}
-.stamp{font:700 1.3rem var(--display);letter-spacing:.24em;text-transform:uppercase;color:var(--alert);border:4px solid var(--alert);padding:6px 18px;transform:rotate(-7deg);animation:stampIn .55s cubic-bezier(.2,1.6,.4,1) .2s both}
-@keyframes stampIn{from{transform:rotate(-7deg) scale(3);opacity:0}}
-/* ---------- Fit-to-window layout: question panel always on screen ---------- */
-.morecue{position:sticky;bottom:-12px;margin:-10px -14px -12px;padding:18px 0 6px;text-align:center;font:700 .62rem var(--display);letter-spacing:.2em;text-transform:uppercase;color:var(--l4);background:linear-gradient(transparent,rgba(8,16,34,.97) 55%);pointer-events:none;opacity:0;transition:opacity .2s}
-.comms.more .morecue{opacity:1}
-@media (min-width:901px){
-  .hud{height:100vh;height:100dvh;min-height:0;grid-template-rows:auto minmax(0,1fr) auto;padding-block:10px 12px;gap:10px}
-  .alt,.read{align-self:stretch;min-height:0;max-height:100%;overflow-y:auto;scrollbar-width:thin}
-  .read{align-content:start}
-  .core{min-height:0;height:100%}
-  .core svg{width:auto;height:100%;max-width:100%;max-height:420px;min-height:0}
-  .comms{max-height:min(64vh,600px);overflow-y:auto;scrollbar-width:thin;align-self:end}
-}
-@media (min-width:901px) and (max-height:820px){
-  .comms{gap:7px;padding:10px 14px;max-height:66vh}
-  .comms h2{font-size:1.05rem}
-  .narr{font-size:.95rem;line-height:1.45}
-  .opts{gap:5px}
-  .opt{padding:7px 12px 7px 26px}
-  .go{padding:8px 16px}
-  .fb{padding:6px 10px;font-size:.9rem}
-  .top{gap:12px}
-}
-/* ---------- In transit: mission panel folds away so the wormhole fills the view ---------- */
-.comms{transition:max-height .45s cubic-bezier(.4,0,.2,1),padding .45s}
-.comms>*{transition:opacity .25s}
-.tbadge{display:none;margin-left:10px;color:var(--l3);animation:blink 1.2s steps(2) infinite}
-body.transit .comms{max-height:44px!important;overflow:hidden;padding-block:10px}
-body.transit .comms>:not(h2){opacity:0;pointer-events:none}
-body.transit .comms h2 #titletext{opacity:0}
-body.transit .tbadge{display:inline}
-body.transit .comms .morecue{opacity:0!important}
-body.transit .alt,body.transit .read{opacity:.55;transition:opacity .45s}
-.alt,.read{transition:opacity .45s}
-@media (prefers-reduced-motion:reduce){.comms,.comms>*,.alt,.read{transition:none}.tbadge{animation:none}}
-/* ---------- Class assignment: reports ---------- */
-#sname{width:min(100%,280px)}
-.course{display:grid;gap:10px}
-.course .lbl{margin:0}
-.cnote{margin:0;color:var(--muted);font-size:.92rem}
-.cnote b{color:var(--fg)}
-.rchip{font:600 .68rem var(--display);letter-spacing:.1em;text-transform:uppercase;padding:4px 10px;border:1px solid var(--hud-faint);color:var(--muted)}
-.rchip.done{border-color:var(--l3);color:var(--l3)}
-.rchip.done::before{content:"✓ "}
-.mcard .filed{font:700 .68rem var(--display);letter-spacing:.14em;color:var(--l3);text-transform:uppercase}
-.linkbtn{background:none;border:0;color:var(--hud-dim);font:600 .66rem var(--display);letter-spacing:.16em;text-transform:uppercase;cursor:pointer;justify-self:start;padding:4px 0;text-decoration:underline}
-.linkbtn:hover{color:var(--hud)}
-.rh{font:700 clamp(1.8rem,5vw,3rem)/1 var(--display);letter-spacing:.1em;text-transform:uppercase;margin:6px 0 8px}
-.rh span{color:var(--l4)}
-.rform{display:grid;gap:18px;max-width:780px;width:100%}
-.rform fieldset{border:0;margin:0;padding:0;min-width:0}
-.rform legend{font:600 .66rem var(--display);letter-spacing:.16em;text-transform:uppercase;color:var(--hud-dim);padding:0;margin-bottom:8px}
-.seg{display:flex;flex-wrap:wrap;gap:6px}
-.seg label{position:relative;cursor:pointer}
-.seg input{position:absolute;opacity:0;width:1px;height:1px}
-.seg span{display:inline-block;min-width:46px;text-align:center;padding:9px 14px;border:1px solid var(--hud-dim);font:600 .9rem var(--display);letter-spacing:.06em;color:var(--fg);background:rgba(159,228,255,.05)}
-.seg label:hover span{border-color:var(--hud)}
-.seg input:checked+span{background:var(--l4);border-color:var(--l4);color:var(--void)}
-.seg input:focus-visible+span{outline:2px solid var(--l4);outline-offset:2px}
-.field select{background:rgba(3,6,15,.7);border:1px solid var(--hud-dim);color:var(--fg);padding:9px 11px;font:500 .95rem var(--body);width:100%}
-.ferr{margin:0;color:var(--alert);font-weight:700;min-height:1.2em}
-.rnote{margin:0;color:var(--muted);max-width:72ch}
-.rnote b{color:var(--fg)}
-.rcard{width:100%;max-width:880px;display:grid;gap:12px;padding:20px}
-.rc-top{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;align-items:flex-start;border-bottom:1px solid var(--hud-faint);padding-bottom:12px}
-.rc-eb{margin:0;font:600 .66rem var(--display);letter-spacing:.2em;text-transform:uppercase;color:var(--hud-dim)}
-.rc-top h2{margin:4px 0;font:700 1.45rem var(--display);letter-spacing:.06em;text-transform:uppercase}
-.rc-who{margin:0;font-weight:700}
-.rc-who small{font-weight:400;color:var(--muted);margin-left:6px}
-.rc-medal{font:700 .76rem var(--display);letter-spacing:.2em;text-transform:uppercase;border:2px solid;padding:6px 12px;white-space:nowrap}
-.rc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
-.rc-grid div{border-left:2px solid var(--sea);padding-left:8px;min-width:0}
-.rc-grid span{display:block;font:600 .6rem var(--display);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
-.rc-grid b{font:700 1.1rem var(--mono);font-variant-numeric:tabular-nums}
-.rc-grid b.sm{font-size:.85rem;font-family:var(--body)}
-.rc-sec h3,.rc-mission h3{margin:0 0 4px;font:600 .64rem var(--display);letter-spacing:.18em;text-transform:uppercase;color:var(--hud-dim)}
-.rc-sec p,.rc-mission p{margin:2px 0;white-space:pre-wrap;overflow-wrap:anywhere}
-.rc-mission{border-top:1px solid var(--hud-faint);padding-top:10px}
-.rc-missed{font-size:.85rem;color:var(--muted)}
-.rc-code{font:700 1.15rem var(--mono)!important;color:var(--l4);letter-spacing:.05em}
-.rc-tw{overflow-x:auto}
-.rc-table{width:100%;border-collapse:collapse;font-size:.8rem}
-.rc-table th{text-align:left;font:600 .58rem var(--display);letter-spacing:.12em;text-transform:uppercase;color:var(--hud-dim);padding:5px 6px;border-bottom:1px solid var(--hud-faint);white-space:nowrap}
-.rc-table td{padding:5px 6px;border-bottom:1px dashed var(--hud-faint);vertical-align:top}
-.rc-table .mono{font-family:var(--mono);white-space:nowrap;color:var(--l4)}
-#k-out{display:grid;gap:10px}
-/* ---------- Embedded in an LMS frame (e.g. D2L Content): offer a full window ---------- */
-#framegate{position:fixed;inset:0;z-index:20;display:grid;place-items:center;overflow-y:auto;background:rgba(3,6,15,.9);padding-inline:16px;padding-block:24px}
-#framegate .gbox{max-width:560px;display:grid;gap:14px;justify-items:center;text-align:center}
-#framegate h2{margin:0;font:700 clamp(1.6rem,5vw,2.4rem)/1.05 var(--display);letter-spacing:.12em;text-transform:uppercase;color:var(--fg)}
-#framegate h2 span{color:var(--l4)}
-#framegate p{margin:0;color:var(--muted);max-width:52ch}
-#framegate a.go{text-decoration:none;font-size:1rem;padding:14px 26px}
-@media (prefers-reduced-motion:reduce){.ring,.ring.leaving,.spin,.unknown,.hdr,.badge,.screenglow,.stamp,.clues li.found{animation:none}.desk svg,.introwrap{transition:none}}
+/* instructor + footer */
+details.inst{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px 22px}
+details.inst summary{cursor:pointer;font:700 .9rem var(--display);letter-spacing:.12em;text-transform:uppercase}
+.instgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;margin-top:16px}
+@media (max-width:760px){.instgrid{grid-template-columns:1fr}}
+.instgrid div{display:grid;gap:8px;align-content:start}
+.instgrid p{margin:0;font-size:.9rem;color:var(--muted)}
+.instgrid .btn{justify-self:start;padding:10px 14px;font-size:.74rem}
+footer{display:grid;gap:10px;border-top:1px solid var(--line);padding-top:24px;color:var(--muted);font-size:.88rem}
+footer b{color:var(--fg);font-family:var(--display);letter-spacing:.1em}
+footer ul{margin:0;padding-left:1.1em}
+@media (prefers-reduced-motion:reduce){.path,.col,.pbar i{transition:none}}
 </style>
 </head>
 <body>
 
-<canvas id="tun" aria-hidden="true"></canvas>
-<canvas id="confetti" aria-hidden="true"></canvas>
-
-<div class="hud" id="hud">
+<div class="wrap">
   <header class="top">
-    <div class="brand"><h1 id="mtitle">Packet Quest</h1><p>Pilot <b id="pilot">—</b></p></div>
-    <div class="route" id="route" aria-label="Route progress"></div>
-    <div class="controls">
-      <span class="xp" id="xp">0 XP</span>
-      <button class="hbtn" id="snd" aria-pressed="false">Sound</button>
-      <button class="hbtn" id="home">Missions</button>
-    </div>
+    <a class="mark" href="#top" id="top" aria-label="The Virtual Networking Universe">
+      <svg viewBox="0 0 28 28" aria-hidden="true"><circle cx="14" cy="14" r="12" fill="none" stroke="var(--hud)" stroke-width="1.5"/><circle cx="14" cy="14" r="4" fill="var(--hud)"/><circle cx="24" cy="9" r="2.5" fill="var(--pq)"/><circle cx="5" cy="20" r="2.5" fill="var(--nc)"/></svg>
+      VNU
+    </a>
+    <nav class="toplinks" aria-label="Site">
+      <a href="#paths">Paths</a><a href="#collections">Collections</a><a href="#progress">My progress</a><a href="#instructor">Instructor</a>
+    </nav>
   </header>
-  <aside class="alt panel" aria-label="OSI floor gauge">
-    <p class="lbl"><span id="altlbl">Altitude</span> // <b id="dev">—</b></p>
-    <ol class="floors" id="floors"></ol>
-    <p class="ceil" id="ceil"></p>
-    <div class="casefile" id="casefile" hidden></div>
-  </aside>
-  <section class="core" aria-label="Packet view">
-    <div class="loc">Location<b id="loc">Standby</b></div>
-    <div class="status"><span id="statlbl">Form</span><b id="pdu">—</b></div>
-    <svg id="reticle" viewBox="-170 -170 340 340" aria-hidden="true"></svg>
-    <div class="ping" id="ping" hidden></div>
-    <div class="queue" id="queue" hidden>
-      <p class="lbl">Output queue // Congested</p>
-      <div class="qbar"><i id="qfill" style="width:100%"></i></div>
-      <div class="qpos" id="qpos">40<small>packets ahead of you</small></div>
+
+  <section class="hero" aria-labelledby="h1">
+    <div>
+      <p class="eb">Networking and cybersecurity, from the inside</p>
+      <h1 id="h1">The Virtual <span>Networking Universe</span></h1>
+      <p class="lead">Become the data, hunt down attackers, and see how switches and routers really make their decisions. Every mission is a short, hands-on trip through real network gear.</p>
+      <div class="ctas">
+        <a class="btn primary" href="play.html#path-hs" data-mode="ex">Start the 45-minute tour ›</a>
+        <a class="btn ghost" href="#collections">Browse collections</a>
+      </div>
     </div>
-    <div class="count" id="count" hidden></div>
-    <div class="flash" id="flash"></div>
+    <svg class="map" viewBox="0 0 440 400" role="img" aria-label="Map of the five collections orbiting you: Packet Quest, Threat Hunters, Network Core, and coming soon, System Insider and SOC Command.">
+      <g class="spin"><circle class="orbit" cx="220" cy="200" r="150"/><circle class="orbit" cx="220" cy="200" r="96"/></g>
+      <line class="edge" x1="220" y1="200" x2="110" y2="88"/><line class="edge" x1="220" y1="200" x2="335" y2="92"/><line class="edge" x1="220" y1="200" x2="372" y2="250"/>
+      <line class="edge" x1="220" y1="200" x2="220" y2="352" stroke-dasharray="4 5"/><line class="edge" x1="220" y1="200" x2="70" y2="262" stroke-dasharray="4 5"/>
+      <circle cx="220" cy="200" r="26" fill="var(--hud)"/><text x="220" y="204" text-anchor="middle" class="you">YOU</text>
+      <a href="play.html#packet-quest" class="world"><circle class="core" cx="110" cy="88" r="20" fill="var(--pq)" style="transform-box:fill-box;transform-origin:center"/><text x="110" y="128" text-anchor="middle" class="lbl">PACKET QUEST</text><text x="110" y="142" text-anchor="middle" class="sub">become the packet</text></a>
+      <a href="play.html#threat-hunters" class="world"><circle class="core" cx="335" cy="92" r="20" fill="var(--th)" style="transform-box:fill-box;transform-origin:center"/><text x="335" y="132" text-anchor="middle" class="lbl">THREAT HUNTERS</text><text x="335" y="146" text-anchor="middle" class="sub">cybersecurity cases</text></a>
+      <a href="play.html#network-core" class="world"><circle class="core" cx="372" cy="250" r="20" fill="var(--nc)" style="transform-box:fill-box;transform-origin:center"/><text x="372" y="290" text-anchor="middle" class="lbl">NETWORK CORE</text><text x="372" y="304" text-anchor="middle" class="sub">switching + routing</text></a>
+      <g opacity=".55"><circle cx="220" cy="352" r="16" fill="none" stroke="var(--si)" stroke-width="2"/><text x="220" y="386" text-anchor="middle" class="lbl">SYSTEM INSIDER</text></g>
+      <g opacity=".55"><circle cx="70" cy="262" r="16" fill="none" stroke="var(--soc)" stroke-width="2"/><text x="70" y="298" text-anchor="middle" class="lbl">SOC COMMAND</text></g>
+    </svg>
   </section>
-  <aside class="read" aria-label="Readouts">
-    <div class="panel navmap" id="navcard" hidden>
-      <p class="lbl">Nav map // <b>Pacific route</b></p>
-      <svg id="navmap" viewBox="0 0 300 150" aria-label="Route map from St. Cloud to Jakarta"></svg>
-      <div class="navstats">
-        <div><span>Distance</span><b id="km">0 km</b></div>
-        <div><span>Travel time</span><b id="ms">0 ms</b></div>
+
+  <section aria-labelledby="ph">
+    <div class="sechead"><p class="eb">Step 1</p><h2 id="ph">Set up once</h2><p class="lead">These settings follow you into every mission in this universe.</p></div>
+    <div class="profile">
+      <div class="prow">
+        <div class="field"><label for="sname">Full name (for reports)</label><input id="sname" maxlength="40" autocomplete="name" placeholder="First Last"></div>
+        <div class="field"><label for="callsign">Callsign (shown in missions)</label><input id="callsign" maxlength="12" autocomplete="off" placeholder="NOVA"></div>
+        <div class="field"><span class="flabel" id="ml">Mode</span><div class="seg" role="group" aria-labelledby="ml"><button id="m-ex" aria-pressed="true">Explorer</button><button id="m-tech" aria-pressed="false">Technician</button></div></div>
+        <div class="field"><span class="flabel" id="mo">Motion</span><div class="seg" role="group" aria-labelledby="mo"><button id="mo-calm" aria-pressed="true">Calm</button><button id="mo-full" aria-pressed="false">Full</button></div></div>
       </div>
+      <p class="hint" id="hint"></p>
+      <p class="saved" id="saved" role="status"></p>
     </div>
-    <div class="panel" id="evcard" hidden>
-      <p class="lbl">Evidence // <b id="evtitle"></b></p>
-      <div class="ev" id="evbody"></div>
-    </div>
-    <div class="panel" id="ttlcard">
-      <div class="ttl">
-        <p class="lbl" style="margin:0">TTL // Energy reserve</p>
-        <div class="v" id="ttlv">—</div>
-        <div class="bar"><i id="ttlbar" style="width:0"></i></div>
-      </div>
-      <div id="hdrs" style="margin-top:10px"></div>
-    </div>
-  </aside>
-  <section class="comms panel" id="comms" aria-live="polite">
-    <h2><small><span id="eyebrow"></span><span class="tbadge">// In transit</span></small><span id="titletext"></span></h2>
-    <p class="narr" id="narr"></p>
-    <div id="extra"></div>
-    <div class="q" id="q"></div>
-    <div id="fbwrap"></div>
-    <div class="row" id="actions"></div>
-    <div class="morecue" id="morecue" aria-hidden="true">More below ▾</div>
   </section>
-</div>
 
-<!-- Mission select -->
-<div class="overlay" id="select">
-  <div class="ovin">
-    <div class="hero">
-      <p class="eb">Virtual Networking Universe</p>
-      <h1>Packet <span>Quest</span></h1>
-      <p>Shrink down, become data, and fly through real network gear. Make the right calls to earn XP and reach your destination.</p>
-    </div>
-    <div class="setup">
-      <div class="field"><label for="sname">Your full name (for reports)</label><input id="sname" maxlength="40" autocomplete="name" placeholder="First Last"></div>
-      <div class="field"><label for="callsign">Your callsign</label><input id="callsign" maxlength="12" autocomplete="off" placeholder="NOVA" value="NOVA"></div>
-      <div class="field"><label>Mode</label>
-        <div class="row" style="gap:6px"><button class="hbtn" id="s-ex" aria-pressed="true">Explorer</button><button class="hbtn" id="s-tech" aria-pressed="false">Technician</button></div></div>
-      <button class="hbtn" id="s-snd" aria-pressed="false">Sound off</button>
-    </div>
-    <div class="panel course" id="course"></div>
-    <p class="sechead">Flight missions</p>
-    <div class="cards" id="cards"></div>
-    <p class="sechead">Case files // Cybersecurity</p>
-    <div class="cards" id="cases"></div>
-    <button class="linkbtn" id="chkbtn">Instructor: check a report code</button>
-  </div>
-</div>
+  <section id="paths" aria-labelledby="pah">
+    <div class="sechead"><p class="eb">Step 2</p><h2 id="pah">Pick a path, or explore on your own</h2><p class="lead">A path is a short list of missions in a good order. Each dot is one mission; filled dots are done.</p></div>
+    <div class="paths" id="pathlist"></div>
+  </section>
 
-<!-- Mission 1 intro: the person at the desk -->
-<div class="overlay" id="intro" hidden>
-  <div class="ovin">
-    <div class="introwrap" id="introwrap">
-      <div class="desk">
-        <svg viewBox="0 0 400 300" role="img" aria-label="A student sitting at a computer, about to send an email">
-          <defs>
-            <radialGradient id="scr" cx="50%" cy="45%" r="70%"><stop offset="0" stop-color="#2a5a8f"/><stop offset="1" stop-color="#0b1a36"/></radialGradient>
-            <linearGradient id="beam" x1="1" x2="0"><stop offset="0" stop-color="#9fe4ff" stop-opacity=".22"/><stop offset="1" stop-color="#9fe4ff" stop-opacity="0"/></linearGradient>
-          </defs>
-          <rect x="0" y="0" width="400" height="300" fill="#060b18"/>
-                    <rect x="0" y="250" width="400" height="50" fill="#0a1124"/>
-          <polygon points="160,95 160,175 60,250 60,140" fill="url(#beam)" class="screenglow"/>
-          <rect x="40" y="192" width="320" height="10" rx="2" fill="#1c2742"/>
-          <rect x="60" y="202" width="8" height="48" fill="#1c2742"/><rect x="332" y="202" width="8" height="48" fill="#1c2742"/>
-          <rect x="150" y="70" width="170" height="112" rx="7" fill="#0b1430" stroke="#9fe4ff" stroke-opacity=".7" stroke-width="2"/>
-          <rect x="158" y="78" width="154" height="96" rx="3" fill="url(#scr)" class="screenglow"/>
-          <rect x="166" y="86" width="60" height="6" rx="2" fill="#9fe4ff" opacity=".8"/>
-          <rect x="166" y="98" width="130" height="4" rx="2" fill="#9fe4ff" opacity=".35"/>
-          <rect x="166" y="108" width="130" height="4" rx="2" fill="#9fe4ff" opacity=".35"/>
-          <rect x="166" y="120" width="138" height="34" rx="2" fill="#9fe4ff" opacity=".12"/>
-          <rect x="266" y="158" width="38" height="11" rx="2" fill="#ffc35a"/>
-          <rect x="226" y="182" width="18" height="10" fill="#1c2742"/>
-          <rect x="196" y="186" width="80" height="6" rx="3" fill="#1c2742"/>
-          <rect x="262" y="180" width="56" height="10" rx="2" fill="#121a33"/>
-          <rect x="74" y="196" width="80" height="84" rx="10" fill="#121a33"/>
-          <path d="M70 262 C70 210 92 186 118 186 C144 186 166 210 168 262 Z" fill="#0a0f1e"/>
-          <path d="M140 192 C156 200 166 222 168 262" fill="none" stroke="#9fe4ff" stroke-opacity=".55" stroke-width="2"/>
-          <circle cx="118" cy="158" r="24" fill="#0a0f1e"/>
-          <path d="M132 140 A24 24 0 0 1 141 165" fill="none" stroke="#9fe4ff" stroke-opacity=".6" stroke-width="2"/>
-          <path d="M96 150 C98 132 116 128 130 134 C138 138 140 146 141 152 C130 142 112 140 96 150 Z" fill="#141c36"/>
-        </svg>
+  <section id="collections" aria-labelledby="coh">
+    <div class="sechead"><p class="eb">Collections</p><h2 id="coh">Five worlds to explore</h2><p class="lead">Each collection teaches one part of networking and security in its own way.</p></div>
+    <div class="cols" id="cols"></div>
+    <div class="cols soon" id="colsoon"></div>
+  </section>
+
+  <section id="progress" aria-labelledby="prh">
+    <div class="sechead"><p class="eb">My progress</p><h2 id="prh">Your record on this computer</h2></div>
+    <div class="stats">
+      <div class="stat"><span>Missions complete</span><b id="s-done">0</b></div>
+      <div class="stat"><span>Total best XP</span><b id="s-xp">0</b></div>
+      <div class="stat"><span>Badges earned</span><b id="s-badges">0</b></div>
+      <div class="stat"><span>Reports filed</span><b id="s-reps">0</b></div>
+    </div>
+    <div class="badges" id="badges"></div>
+  </section>
+
+  <section id="instructor" aria-label="Instructor tools">
+    <details class="inst">
+      <summary>Instructor tools</summary>
+      <div class="instgrid">
+        <div><p><b>Unlock all levels</b> on this computer, for demos and testing. Students normally unlock Level 2 and 3 by finishing the level before.</p><button class="btn ghost" id="unlock"></button></div>
+        <div><p><b>Check a report code.</b> Paste the student's name and verification code to confirm their results.</p><a class="btn ghost" href="play.html#checker">Open the code checker ›</a></div>
+        <div><p><b>See everything.</b> One page with every built mission, case and level.</p><a class="btn ghost" href="play.html">All missions ›</a></div>
+        <div><p><b>EPIC station mode.</b> Two 10–12 minute tours, callsign only, today's high scores, and an automatic reset for the next student.</p><a class="btn ghost" href="epic.html">Open EPIC station ›</a></div>
       </div>
-      <div class="compose panel">
-        <div class="ttlbar"><span>New message</span><span id="clock">—</span></div>
-        <div class="field"><label for="m-from">From</label><input id="m-from" readonly></div>
-        <div class="field"><label for="m-to">To</label><input id="m-to" value="bestfriend@school.lab" maxlength="40"></div>
-        <div class="field"><label for="m-subj">Subject</label><input id="m-subj" value="Guess where I am" maxlength="40"></div>
-        <div class="field"><label for="m-body">Message</label><textarea id="m-body" maxlength="140">I'm inside the network right now!</textarea></div>
-        <p class="note" style="margin:0">When you press Send, you become this email.</p>
-        <div class="row"><button class="go" id="sendbtn">Send ›</button><button class="go alt" id="introback">Back</button></div>
-      </div>
-    </div>
-  </div>
-</div>
+    </details>
+  </section>
 
-<!-- Celebration -->
-<div class="overlay" id="cele" hidden>
-  <div class="cele" id="celebody"></div>
-</div>
-
-<!-- Shown only when the file is embedded in another site's frame -->
-<div id="framegate" hidden>
-  <div class="gbox">
-    <p class="lbl" style="margin:0">Packet Quest</p>
-    <h2>Open in a <span>full window</span></h2>
-    <p>Packet Quest needs the whole screen, and your mission reports can't download from inside this course page.</p>
-    <a class="go" id="fg-open" target="_blank" rel="noopener">Open Packet Quest ›</a>
-    <p class="note" style="margin:0">It opens in a new tab. Keep this tab open so you can come back to the course.</p>
-    <button class="linkbtn" id="fg-stay" type="button">Play here anyway</button>
-  </div>
-</div>
-
-<!-- Reports -->
-<div class="overlay" id="rep" hidden>
-  <div class="ovin" id="repbody"></div>
+  <footer>
+    <p><b>VNU 2.0</b> · October 13, 2026</p>
+    <ul>
+      <li>New: this home page, with paths and collections.</li>
+      <li>Case Files are now <b>Threat Hunters</b>; switching and routing are now <b>Network Core</b>.</li>
+      <li>Coming next: clearer explanations and animated lessons in every mission.</li>
+    </ul>
+  </footer>
 </div>
 
 <script>
-(() => {
+(()=>{
 const $=id=>document.getElementById(id);
-const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
-const sleep=ms=>new Promise(r=>setTimeout(r,reduce?Math.min(ms,80):ms));
-let mode="ex"; try{const m=localStorage.getItem("pq-mode"); if(m==="ex"||m==="tech") mode=m;}catch(e){}
-const pick=o=>(o&&typeof o==="object")?o[mode]:o;
-const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-const css=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
-const fmt=n=>Math.round(n).toLocaleString("en-US");
 const store={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+const fmt=n=>Math.round(n).toLocaleString("en-US");
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const MIS={send:["Send It","Email Courier"],jakarta:["Jakarta Run","Pacific Navigator"],phantom:["Phantom Hotspot","Wi-Fi Detective"],phish:["Gone Phishing","Phish Finder"],beacon:["The 3 A.M. Signal","Malware Hunter"],knock:["Knock Knock","Firewall Guardian"],
+  sw1:["Inside the Switch","Switch Specialist"],sw2:["Color-Coded","VLAN Navigator"],sw3:["Lockdown","Port Guardian"],rt1:["The Router's Decision","Route Master"],rt2:["Checkpoint","Gatekeeper"],rt3:["Identity Chamber","Identity Master"]};
+const done=id=>!!store.get("pq-best-"+id), best=id=>+(store.get("pq-best-"+id)||0);
+const COLS=[
+  {id:"packet-quest",name:"Packet Quest",c:"--pq",tag:"Shrink down and become the data. Ride an email to a mail server, then cross the Pacific to Jakarta.",items:["send","jakarta"],
+   ic:`<circle cx="23" cy="23" r="20" fill="none" stroke="var(--pq)" stroke-width="2"/><circle cx="23" cy="23" r="13" fill="none" stroke="var(--pq)" stroke-width="2" stroke-dasharray="4 3"/><rect x="16" y="18" width="14" height="10" rx="1.5" fill="none" stroke="var(--fg)" stroke-width="1.8"/><path d="M16 19 L23 24 L30 19" fill="none" stroke="var(--fg)" stroke-width="1.8"/>`},
+  {id:"threat-hunters",name:"Threat Hunters",c:"--th",tag:"Cybersecurity cases. Collect clues, name the culprit, and learn how to stay safe.",items:["phantom","phish","beacon","knock"],
+   ic:`<circle cx="20" cy="20" r="13" fill="none" stroke="var(--th)" stroke-width="2.4"/><line x1="29.5" y1="29.5" x2="41" y2="41" stroke="var(--th)" stroke-width="4" stroke-linecap="round"/><path d="M14 20 h12 M20 14 v12" stroke="var(--fg)" stroke-width="1.8"/>`},
+  {id:"network-core",name:"Network Core",c:"--nc",tag:"How switches and routers really work. Two tracks, three levels each, from first look to hands-on.",items:["sw1","sw2","sw3","rt1","rt2","rt3"],
+   ic:`<rect x="4" y="16" width="38" height="14" rx="2" fill="none" stroke="var(--nc)" stroke-width="2"/>${[9,16,23,30].map(x=>`<rect x="${x}" y="21" width="5" height="4" fill="var(--nc)"/>`).join("")}<circle cx="37" cy="10" r="6" fill="none" stroke="var(--fg)" stroke-width="1.8"/><path d="M33.5 10 h7 M37 6.5 v7" stroke="var(--fg)" stroke-width="1.5"/>`}];
+const SOON=[
+  {name:"System Insider",c:"--si",role:"You are the Systems Administrator",tag:"Windows and Linux. Work a ticket queue: locked-out users, full disks, broken services and suspicious logins.",
+   ic:`<rect x="5" y="7" width="36" height="26" rx="3" fill="none" stroke="var(--si)" stroke-width="2"/><path d="M12 16 l5 4 -5 4 M20 25 h10" fill="none" stroke="var(--fg)" stroke-width="1.8" stroke-linecap="round"/><path d="M16 39 h14" stroke="var(--si)" stroke-width="2"/>`},
+  {name:"SOC Command",c:"--soc",role:"Defend the network",tag:"Build firewall rules, tune an IDS/IPS, then run the SOC dashboard as alerts roll in.",
+   ic:`<path d="M23 4 L39 10 V22 C39 32 31 39 23 42 C15 39 7 32 7 22 V10 Z" fill="none" stroke="var(--soc)" stroke-width="2"/><path d="M15 23 l6 6 10 -11" fill="none" stroke="var(--fg)" stroke-width="2" stroke-linecap="round"/>`}];
+const PATHS=[
+  {id:"path-hs",who:"Visitors · high school",t:"45-minute tour",p:"A first ride through a network, one cyber case, and a trip across the Pacific.",ids:["send","phantom","jakarta"],mode:"ex"},
+  {id:"path-itec",who:"Intro to Networks",t:"Network foundations",p:"Packet Quest, then the first two levels of switching and routing.",ids:["send","jakarta","sw1","rt1","sw2","rt2"]},
+  {id:"path-ccna",who:"CCNA 2",t:"Switching and routing",p:"All six Network Core levels. Best in Technician mode.",ids:["sw1","sw2","sw3","rt1","rt2","rt3"],mode:"tech"},
+  {id:"path-sec",who:"Cybersecurity",t:"Security starter",p:"All four Threat Hunters cases, then port security and ACLs.",ids:["phantom","phish","beacon","knock","sw3","rt2"]}];
+const colOf=id=>COLS.find(c=>c.items.includes(id));
 
-/* ---------- Bytes: real IPv4/TCP checksums and Ethernet FCS ---------- */
-const macB=m=>m.replace(/\./g,"").match(/../g).map(h=>parseInt(h,16));
-const ipB=i=>i.split(".").map(Number);
-const u16=n=>[(n>>8)&255,n&255];
-function csum(b){let s=0;for(let i=0;i<b.length;i+=2)s+=(b[i]<<8)+(b[i+1]||0);while(s>>16)s=(s&0xffff)+(s>>16);return(~s)&0xffff;}
-const CRC=(()=>{const t=[];for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0;}return t;})();
-const crc32=b=>{let c=0xffffffff;for(const x of b)c=CRC[(c^x)&255]^(c>>>8);return(c^0xffffffff)>>>0;};
-const hx=(n,w)=>"0x"+n.toString(16).toUpperCase().padStart(w,"0");
-const hexs=b=>b.map(x=>x.toString(16).padStart(2,"0")).join(" ");
-function cipherOf(plain){
-  let h=2166136261>>>0; for(const c of plain) h=Math.imul(h^c,16777619)>>>0;
-  const body=[]; for(let i=0;i<plain.length+16;i++){h^=h<<13;h>>>=0;h^=h>>>17;h^=h<<5;h>>>=0;body.push(h&255);}
-  return [0x17,0x03,0x03,...u16(body.length),...body];
+function render(){
+  $("pathlist").innerHTML=PATHS.map(p=>{ const n=p.ids.filter(done).length;
+    return `<a class="path" href="play.html#${p.id}" ${p.mode?`data-mode="${p.mode}"`:""}><span class="who">${p.who}</span><h3>${p.t}</h3><p>${p.p}</p>
+      <div class="steps" aria-label="${n} of ${p.ids.length} complete">${p.ids.map(id=>`<i class="${done(id)?"done":""}" style="--c:var(${colOf(id).c})" title="${esc(MIS[id][0])}"></i>`).join("")}</div>
+      <span class="go">${n===p.ids.length?"Complete · replay ›":n?`Continue · ${n} of ${p.ids.length} ›`:`Start · ${p.ids.length} missions ›`}</span></a>`; }).join("");
+  $("cols").innerHTML=COLS.map(c=>{ const n=c.items.filter(done).length;
+    return `<a class="col" href="play.html#${c.id}" style="--c:var(${c.c})"><svg class="ic" viewBox="0 0 46 46" aria-hidden="true">${c.ic}</svg><h3>${c.name}</h3><p class="tagline">${c.tag}</p>
+      <ul>${c.items.map(id=>`<li>${esc(MIS[id][0])}${done(id)?" ✓":""}</li>`).join("")}</ul>
+      <div class="pmeta"><span>${n} of ${c.items.length} complete</span><span>${fmt(c.items.reduce((a,id)=>a+best(id),0))} XP</span></div><div class="pbar"><i style="width:${n/c.items.length*100}%"></i></div>
+      <span class="enter">Enter ${c.name} ›</span></a>`; }).join("");
+  $("colsoon").innerHTML=SOON.map(c=>`<div class="col dim" style="--c:var(${c.c})"><svg class="ic" viewBox="0 0 46 46" aria-hidden="true">${c.ic}</svg><span class="role">${c.role}</span><h3>${c.name}</h3><p class="tagline">${c.tag}</p><span class="enter">Coming soon</span></div>`).join("");
+  const ids=Object.keys(MIS), d=ids.filter(done);
+  $("s-done").textContent=`${d.length}/${ids.length}`; $("s-xp").textContent=fmt(ids.reduce((a,id)=>a+best(id),0)); $("s-badges").textContent=d.length;
+  let reps=0; try{ const all=JSON.parse(store.get("pq-reports")||"{}"), k=(store.get("pq-sname")||"").trim().toLowerCase().replace(/\s+/g," "); reps=k&&all[k]?Object.keys(all[k]).filter(x=>x!=="_final").length:0; }catch(e){}
+  $("s-reps").textContent=reps;
+  $("badges").innerHTML=d.length?d.map(id=>`<span class="badge" style="border-color:var(${colOf(id).c})">${esc(MIS[id][1])}</span>`).join(""):`<span class="badge none">No badges yet. Finish a mission to earn one.</span>`;
+  $("unlock").textContent=store.get("pq-unlock")==="1"?"Re-lock levels":"Unlock all levels";
 }
-function dataBytes(){ return st.cipher?cipherOf(st.plainB):st.plainB; }
-function build(){
-  const p=st.p, data=dataBytes();
-  const tcp=[...u16(p.sport),...u16(p.dport==="????"?0:+p.dport),0x6a,0x3f,0x1c,0x01,0x0b,0x17,0xe2,0xa9,0x50,0x18,...u16(64240),0,0,0,0];
-  const tc=csum([...ipB(p.sip),...ipB(p.dip),0,6,...u16(tcp.length+data.length),...tcp,...data]); tcp[16]=tc>>8; tcp[17]=tc&255;
-  const ip=[0x45,0,...u16(20+tcp.length+data.length),0x1c,0x46,0x40,0,p.ttl,6,0,0,...ipB(p.sip),...ipB(p.dip)];
-  const ic=csum(ip); ip[10]=ic>>8; ip[11]=ic&255;
-  const eth=[...macB(p.dmac||"0000.0000.0000"),...macB(p.smac),8,0];
-  return {eth,ip,tcp,data,ic,fcs:crc32([...eth,...ip,...tcp,...data])};
-}
-
-/* ---------- Sound ---------- */
-let ac=null,soundOn=false;
-function tone(f,d=.15,type="sine",vol=.12,f2=null,delay=0){if(!soundOn)return;try{ac=ac||new(window.AudioContext||window.webkitAudioContext)();const o=ac.createOscillator(),g=ac.createGain(),t=ac.currentTime+delay;o.type=type;o.frequency.setValueAtTime(f,t);if(f2)o.frequency.exponentialRampToValueAtTime(f2,t+d);g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g).connect(ac.destination);o.start(t);o.stop(t+d+.02);}catch(e){}}
-const sfx={floor:d=>tone(d>0?520:340,.12,"triangle",.07,d>0?700:240),wrap:()=>tone(240,.35,"sine",.11,620),shed:()=>tone(640,.35,"sine",.11,220),
-  warp:()=>tone(90,1.8,"sawtooth",.05,900),right:()=>{tone(660,.12);tone(990,.18,"sine",.12,null,.11)},wrong:()=>tone(150,.32,"sawtooth",.07),
-  beep:()=>tone(880,.08,"square",.05),go:()=>tone(440,.5,"sawtooth",.06,1320),scramble:()=>{for(let i=0;i<10;i++)tone(300+Math.random()*1200,.04,"square",.03,null,i*.05)},
-  fanfare:()=>[[523,0],[659,.15],[784,.3],[1047,.45],[784,.7],[1047,.85]].forEach(([f,d])=>tone(f,.35,"triangle",.12,null,d))};
-
-/* ---------- Tunnel ---------- */
-const cv=$("tun"),cx=cv.getContext("2d");
-const T={speed:.25,target:.25,col:[143,184,255],tcol:[143,184,255],sides:48,bits:false,t:0};
-const rgb=h=>{h=h.replace("#","");return[0,2,4].map(i=>parseInt(h.substr(i,2),16));};
-const rings=[],parts=[],D=4;
-for(let i=0;i<34;i++) rings.push({z:.12+i*(D/34)});
-for(let i=0;i<140;i++) parts.push({a:Math.random()*6.283,r:.25+Math.random()*.9,z:Math.random()*D,c:Math.random()<.5?"0":"1"});
-let W=0,H=0;
-function resize(){const d=Math.min(2,devicePixelRatio||1);W=innerWidth;H=innerHeight;for(const c of [cv,$("confetti")]){c.width=W*d;c.height=H*d;c.getContext("2d").setTransform(d,0,0,d,0,0);}}
-addEventListener("resize",resize); resize();
-function tunnel(o){ if(o.speed!=null)T.target=reduce?Math.min(o.speed,.3):o.speed; if(o.color)T.tcol=rgb(css(o.color)); if(o.sides)T.sides=o.sides; if(o.bits!=null)T.bits=o.bits; }
-let last=performance.now();
-function frame(now){
-  const dt=Math.min(.05,(now-last)/1000); last=now; T.t+=dt;
-  T.speed+=(T.target-T.speed)*Math.min(1,dt*2.2);
-  T.col=T.col.map((c,i)=>c+(T.tcol[i]-c)*Math.min(1,dt*1.6));
-  const [r,g,b]=T.col.map(Math.round), base=Math.min(W,H)*.42, ccx=W/2, ccy=H*.42;
-  cx.fillStyle="rgba(3,6,15,"+(T.speed>2?.35:.6)+")"; cx.fillRect(0,0,W,H);
-  const bend=z=>({x:ccx+Math.sin(T.t*.55+z*1.3)*z*W*.05,y:ccy+Math.cos(T.t*.42+z*1.1)*z*H*.04});
-  const rot=T.t*.08;
-  for(const R of rings){
-    R.z-=T.speed*dt; if(R.z<.12) R.z+=D;
-    const p=bend(R.z), rad=base/R.z, a=Math.max(0,Math.min(1,(1-R.z/D)*1.4))*Math.min(1,(R.z-.12)*6);
-    cx.strokeStyle=`rgba(${r},${g},${b},${a*.55})`; cx.lineWidth=Math.max(.5,2.2/R.z);
-    cx.beginPath(); const n=T.sides;
-    for(let k=0;k<=n;k++){const ang=rot+k/n*6.2832,x=p.x+Math.cos(ang)*rad,y=p.y+Math.sin(ang)*rad;k?cx.lineTo(x,y):cx.moveTo(x,y);}
-    cx.stroke();
-    if(n<=8){cx.fillStyle=`rgba(${r},${g},${b},${a*.8})`;for(let k=0;k<n;k++){const ang=rot+k/n*6.2832;cx.fillRect(p.x+Math.cos(ang)*rad-2,p.y+Math.sin(ang)*rad-2,4,4);}}
-  }
-  cx.textAlign="center";
-  for(const q of parts){
-    const zPrev=q.z; q.z-=T.speed*dt*1.6; if(q.z<.1){q.z+=D;continue;}
-    const p=bend(q.z),rad=base*q.r/q.z,x=p.x+Math.cos(q.a+rot)*rad,y=p.y+Math.sin(q.a+rot)*rad,a=Math.max(0,Math.min(1,1-q.z/D));
-    if(T.bits){cx.fillStyle=`rgba(${r},${g},${b},${a})`;cx.font=`700 ${Math.max(8,18/q.z)|0}px JetBrains Mono, monospace`;cx.fillText(q.c,x,y);}
-    else if(T.speed>1.2){const pp=bend(zPrev),pr=base*q.r/zPrev;cx.strokeStyle=`rgba(${r},${g},${b},${a})`;cx.lineWidth=1.4;cx.beginPath();cx.moveTo(pp.x+Math.cos(q.a+rot)*pr,pp.y+Math.sin(q.a+rot)*pr);cx.lineTo(x,y);cx.stroke();}
-    else{cx.fillStyle=`rgba(${r},${g},${b},${a*.7})`;cx.fillRect(x,y,1.6,1.6);}
-  }
-  requestAnimationFrame(frame);
-}
-requestAnimationFrame(frame);
-const LAYERCOL={data:"--l7",tcp:"--l4",ip:"--l3",eth:"--l2"};
-const MEDIUM={copper:{col:"--l1",lbl:"Copper cable // electrical signals"},fiber:{col:"--fiber",lbl:"Fiber optic // pulses of light"},sea:{col:"--sea",lbl:"Submarine cable // ocean floor"}};
-
-/* ---------- Confetti ---------- */
-function confetti(){
-  if(reduce) return; const c=$("confetti").getContext("2d"); const cols=["--l4","--l3","--l2","--l7","--alert"].map(css);
-  const bits=[]; for(let i=0;i<220;i++) bits.push({x:W/2+(Math.random()-.5)*120,y:H*.35,vx:(Math.random()-.5)*16,vy:-Math.random()*16-4,w:6+Math.random()*6,h:3+Math.random()*4,rot:Math.random()*6,vr:(Math.random()-.5)*.4,col:cols[i%cols.length]});
-  const t0=performance.now();
-  const step=now=>{ c.clearRect(0,0,W,H); const t=(now-t0)/1000;
-    for(const b of bits){b.vy+=.42;b.vx*=.99;b.x+=b.vx;b.y+=b.vy;b.rot+=b.vr;c.save();c.translate(b.x,b.y);c.rotate(b.rot);c.fillStyle=b.col;c.globalAlpha=Math.max(0,1-t/4);c.fillRect(-b.w/2,-b.h/2,b.w,b.h);c.restore();}
-    if(t<4) requestAnimationFrame(step); else c.clearRect(0,0,W,H); };
-  requestAnimationFrame(step);
-}
-
-/* ---------- Shared state & HUD ---------- */
-let st=null, M=null, busy=false, curFb=null, callsign="NOVA";
-const FLOORS=[[7,"Application","Data"],[6,"Presentation","encryption"],[5,"Session","no header"],[4,"Transport","Segment"],[3,"Network","Packet"],[2,"Data Link","Frame"],[1,"Physical","Bits"]];
-function node(i){ return M.route[i]; }
-function renderAlt(){
-  if(M&&M.kind==="case"){renderCaseFile();return;}
-  $("altlbl").textContent="Altitude";
-  const d=node(st.at); $("dev").textContent=d.name;
-  $("floors").innerHTML=FLOORS.map(([n,nm,pdu])=>`<li class="${n>d.ceil?"locked":""} ${st.floor===n?"here":""}"><span class="n">${n}</span><span class="nm">${nm}<span class="pdu">${pdu}</span></span></li>`).join("");
-  $("ceil").textContent=d.ceil<7?`${d.kind} ceiling: floor ${d.ceil}`:"";
-}
-let flashT;
-function flash(t,ms=1300){const f=$("flash");f.textContent=t;f.classList.add("on");clearTimeout(flashT);flashT=setTimeout(()=>f.classList.remove("on"),ms);}
-async function goFloor(t,ms=650){
-  while(st.floor!==t){const dir=st.floor<t?1:-1;st.floor+=dir;st.floors++;renderAlt();const f=FLOORS[7-st.floor];flash(`Layer ${f[0]} // ${f[1]}`);sfx.floor(dir);
-    tunnel({speed:2.4});await sleep(ms*.55);tunnel({speed:.35});await sleep(ms*.45);}
-}
-const RING={data:{r:40},tcp:{r:74,lbl:"L4 · TCP SEGMENT",c:"--l4"},ip:{r:108,lbl:"L3 · IP PACKET",c:"--l3"},eth:{r:142,lbl:"L2 · ETHERNET FRAME",c:"--l2"}};
-function renderReticle(leaving){
-  let h=`<g stroke="var(--hud-dim)"><line x1="-165" y1="0" x2="-150" y2="0"/><line x1="150" y1="0" x2="165" y2="0"/><line x1="0" y1="-165" x2="0" y2="-150"/><line x1="0" y1="150" x2="0" y2="165"/></g>`;
-  if(st.bitsView){
-    let txt="";for(let i=0;i<14;i++){const a=i/14*6.283;txt+=`<text x="${(Math.cos(a)*95).toFixed(1)}" y="${(Math.sin(a)*95+4).toFixed(1)}" text-anchor="middle" class="rl" fill="var(--l1)">${(i*37%2)?"1":"0"}${(i*11%2)?"1":"0"}</text>`;}
-    h+=`<g class="spin">${txt}</g><circle r="60" fill="none" stroke="var(--l1)" stroke-dasharray="2 6" class="spin rev"/><text y="5" text-anchor="middle" font-family="Chakra Petch" font-weight="700" font-size="16" letter-spacing="3" fill="var(--l1)">BITS</text>`;
-  } else if(!st.layers.length){ h+=`<circle r="6" fill="none" stroke="var(--hud)" stroke-width="1.5"/>`; }
-  else for(const k of ["eth","ip","tcp","data"]){
-    if(!st.layers.includes(k)) continue; const R=RING[k], cls="ring"+(leaving===k?" leaving":"");
-    if(k==="data"){
-      const lock=st.cipher?`<g transform="translate(0,-8)" fill="none" stroke="var(--l2)" stroke-width="2.5"><path d="M-7 -2 v-6 a7 7 0 0 1 14 0 v6"/><rect x="-10" y="-2" width="20" height="15" rx="2" fill="var(--l2)" fill-opacity=".35"/></g>`:"";
-      h+=`<g class="${cls}"><circle r="${R.r}" fill="${st.cipher?"var(--l2)":"var(--l7)"}" fill-opacity=".16" stroke="${st.cipher?"var(--l2)":"var(--l7)"}" stroke-width="2"/>${lock}<text y="${st.cipher?20:4}" text-anchor="middle" class="rl" fill="${st.cipher?"var(--l2)":"var(--l7)"}">${st.cipher?"ENCRYPTED":M.coreLabel}</text></g>`;
-    } else h+=`<g class="${cls}"><circle r="${R.r}" fill="none" stroke="var(${R.c})" stroke-opacity=".25" stroke-width="14"/>
-      <circle r="${R.r}" fill="none" stroke="var(${R.c})" stroke-width="2" stroke-dasharray="${k==="eth"?"30 6":k==="ip"?"18 5":"10 4"}" class="spin ${k==="ip"?"rev":""}"/>
-      <text y="${-R.r+3}" text-anchor="middle" class="rl" fill="var(${R.c})" paint-order="stroke" stroke="var(--void)" stroke-width="4">${R.lbl}</text>
-      ${k==="eth"?`<text y="${R.r+3}" text-anchor="middle" class="rl" fill="var(--l2)" paint-order="stroke" stroke="var(--void)" stroke-width="4">FCS TRAILER</text>`:""}</g>`;
-  }
-  $("reticle").innerHTML=h;
-}
-function fieldVals(){const p=st.p,b=build();return{b,dmac:p.dmac||"????",smac:p.smac,ttl:String(p.ttl),ck:hx(b.ic,4),fcs:p.fcsReady?hx(b.fcs,8):"????",dport:String(p.dport)};}
-function kv(rows){return `<dl class="kv">${rows.filter(r=>!(r.tech&&mode==="ex")).map(r=>{const old=st.diff[r.k];
-  return `<dt>${esc(r.l)}</dt><dd class="${r.v==="????"?"unknown":old!==undefined?"chg":""}">${old!==undefined?`<s>${esc(old)}</s>`:""}${esc(r.v)}</dd>`;}).join("")}</dl>`;}
-function renderReadouts(){
-  const f=fieldVals(),L=st.layers,names={data:"Data",tcp:"Segment",ip:"Packet",eth:"Frame"};
-  $("pdu").textContent=st.bitsView?"Bits":L.length?names[L[L.length-1]]:"—";
-  const show=L.includes("ip")||st.bitsView;
-  $("ttlv").innerHTML=show?`${st.diff.ttl?`<s>${st.diff.ttl}</s>`:""}${f.ttl}`:"—";
-  $("ttlbar").style.width=show?(st.p.ttl/255*100)+"%":"0";
-  let h="";
-  if(st.bitsView){
-    const b=f.b,fb=[b.fcs&255,(b.fcs>>8)&255,(b.fcs>>16)&255,b.fcs>>>24];
-    const rows=[["Preamble+SFD","55 55 55 55 55 55 55 d5","c0"],["Dest MAC",hexs(b.eth.slice(0,6)),"c2"],["Src MAC",hexs(b.eth.slice(6,12)),"c2"],["EtherType",hexs(b.eth.slice(12)),"c2"],
-      ["IPv4 header",hexs(b.ip),"c3"],["TCP header",hexs(b.tcp),"c4"],["Data",hexs(b.data.slice(0,16))+" …","c7"],["FCS",hexs(fb),"c2"]];
-    h=`<div class="hdr l1"><h4>L1 // On the wire</h4>${rows.map(r=>`<div class="hexrow ${r[2]}"><span>${r[0]}</span><code>${r[1]}</code></div>`).join("")}
-      <p class="note">${mode==="tech"?"Real bytes for this frame: IP checksum, TCP checksum and FCS calculated. Wireshark's bytes pane starts at the Dest MAC and usually hides the preamble and FCS.":"Every field is now just numbers, sent as a stream of signals."}</p></div>`;
-  } else {
-    if(L.includes("eth")) h+=`<div class="hdr l2"><h4>L2 // Ethernet</h4>${kv([{l:"Dest MAC",v:f.dmac,k:"dmac"},{l:"Src MAC",v:f.smac,k:"smac"},{l:"EtherType",v:"0x0800",tech:1},{l:"FCS",v:f.fcs,k:"fcs"}])}</div>`;
-    if(L.includes("ip")) h+=`<div class="hdr l3"><h4>L3 // IPv4</h4>${kv([{l:"Src IP",v:st.p.sip,k:"sip"},{l:"Dst IP",v:st.p.dip,k:"dip"},{l:"Protocol",v:"6 (TCP)",tech:1},{l:"Checksum",v:f.ck,k:"ck",tech:1}])}</div>`;
-    if(L.includes("tcp")) h+=`<div class="hdr l4"><h4>L4 // TCP</h4>${kv([{l:"Src port",v:String(st.p.sport),k:"sport"},{l:"Dst port",v:f.dport,k:"dport"},{l:"Seq",v:"0x6A3F1C01",tech:1},{l:"Flags",v:"PSH, ACK",tech:1}])}</div>`;
-    if(L.includes("data")){
-      if(st.cipher) h+=`<div class="hdr l2"><h4>L7 // ${M.dataName} · encrypted</h4><pre class="payload cipher">${hexs(f.b.data.slice(0,40))} …</pre>${mode==="tech"?`<p class="note">TLS application-data record (0x17 0x03 0x03 + length). Payload is ciphertext to every device on the path.</p>`:`<p class="note">Scrambled. Only the destination has the key.</p>`}</div>`;
-      else h+=`<div class="hdr l7"><h4>L7 // ${M.dataName}</h4><pre class="payload">${esc(st.scrambleText||st.plain)}</pre></div>`;
-    }
-  }
-  $("hdrs").innerHTML=h||`<p class="empty">No headers yet.</p>`;
-}
-function renderAll(leaving){ if(M&&M.kind==="case"){renderRadar();renderEvidence();$("pdu").textContent=`${st.clues.length}/${M.clueCount}`;return;} renderReticle(leaving);renderReadouts();}
-async function addLayer(l){st.layers.push(l);tunnel({color:LAYERCOL[l]});sfx.wrap();renderAll();await sleep(650);}
-async function shedLayer(l){renderAll(l);sfx.shed();tunnel({speed:2});await sleep(reduce?50:560);st.layers=st.layers.filter(x=>x!==l);tunnel({speed:.35,color:LAYERCOL[st.layers[st.layers.length-1]]||"--l7"});renderAll();}
-function ping(t){const p=$("ping");if(!t){p.hidden=true;return;}p.textContent=t;p.hidden=false;}
-function pct(i){return i/(M.route.length-1)*100;}
-function renderRoute(){
-  $("route").innerHTML=`<div class="track"></div>`+(M.segs||[]).map(s=>`<span class="seg" style="left:${s[0]}%">${s[1]}</span>`).join("")+
-    M.route.map((n,i)=>`<span class="tick ${st.pos>=pct(i)-.01?"on":""}" style="left:${pct(i)}%"></span><span class="tl" style="left:${pct(i)}%">${n.short||n.name}</span>`).join("")+
-    `<span class="you" id="youbar" style="left:${st.pos}%"></span>`;
-}
-
-/* ---------- Nav map (Mission 2) ---------- */
-const prj=(lat,lon)=>{const L=(lon+360)%360;return{x:10+(L-95)/185*280,y:10+(60-lat)/75*130};};
-function drawNav(){
-  const s=$("navmap"); let h="";
-  for(let lon=100;lon<=270;lon+=20){const a=prj(60,lon),b=prj(-15,lon);h+=`<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="var(--hud-faint)"/>`;}
-  for(let lat=-10;lat<=50;lat+=20){const a=prj(lat,95),b=prj(lat,280);h+=`<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="var(--hud-faint)"/>`;}
-  const eq=prj(0,95),eq2=prj(0,280);h+=`<line x1="${eq.x}" y1="${eq.y}" x2="${eq2.x}" y2="${eq2.y}" stroke="var(--hud-dim)" stroke-dasharray="2 3"/>`;
-  h+=`<text x="${prj(25,185).x}" y="${prj(25,185).y}" text-anchor="middle" class="city" fill="var(--sea)" style="fill:var(--sea);letter-spacing:.3em">PACIFIC OCEAN</text>`;
-  M.route.forEach((n,i)=>{ if(i<M.route.length-1){const a=prj(n.lat,n.lon),b=prj(M.route[i+1].lat,M.route[i+1].lon);const mx=(a.x+b.x)/2,my=Math.min(a.y,b.y)-14;
-      h+=`<path id="leg${i}" d="M${a.x} ${a.y} Q${mx} ${my} ${b.x} ${b.y}" fill="none" stroke="${i<st.leg?"var(--l4)":"var(--hud-dim)"}" stroke-width="1.4" stroke-dasharray="${i<st.leg?"":"3 3"}"/>`;} });
-  M.route.forEach((n,i)=>{const p=prj(n.lat,n.lon);const lx=n.lab||[0,-6];h+=`<circle cx="${p.x}" cy="${p.y}" r="${i===M.route.length-1?4:2.8}" fill="${i<=st.at?"var(--l4)":"var(--void)"}" stroke="var(--l4)"/><text x="${p.x+lx[0]}" y="${p.y+lx[1]}" text-anchor="middle" class="city">${n.short||n.name}</text>`;});
-  h+=`<circle id="navme" r="4" fill="var(--l4)" style="filter:drop-shadow(0 0 4px var(--l4))"/>`;
-  s.innerHTML=h; placeNav(st.at,0);
-}
-function placeNav(i,t){ const me=$("navme"); if(!me) return; let p;
-  if(t===0||i>=M.route.length-1){p=prj(M.route[i].lat,M.route[i].lon);} else {const path=$("leg"+i);const L=path.getTotalLength();p=path.getPointAtLength(L*t);}
-  me.setAttribute("cx",p.x); me.setAttribute("cy",p.y); }
-function renderNavStats(){ $("km").textContent=fmt(st.km)+" km"; $("ms").textContent=(Math.round(st.ms*10)/10).toFixed(1)+" ms"; }
-
-/* ---------- Movement ---------- */
-async function transmit(toIdx,medium="copper"){
-  const md=MEDIUM[medium], from=st.at, leg=M.route[from].leg||null;
-  st.bitsView=true; tunnel({bits:true,color:md.col,sides:48}); renderAll(); flash(md.lbl,1800); await sleep(700);
-  sfx.warp(); tunnel({speed:9});
-  const p0=st.pos,p1=pct(toIdx),km0=st.km,ms0=st.ms,dur=reduce?80:(leg&&leg.km>5000?3000:2000),t0=performance.now();
-  await new Promise(res=>{const step=now=>{const t=Math.min(1,(now-t0)/dur);st.pos=p0+(p1-p0)*t;$("youbar").style.left=st.pos+"%";
-    if(leg){st.km=km0+leg.km*t;st.ms=ms0+leg.km/200*t;renderNavStats();placeNav(from,t);} if(t<1)requestAnimationFrame(step);else res();};requestAnimationFrame(step);});
-  tunnel({speed:.6}); st.at=toIdx; st.leg=Math.max(st.leg,toIdx); st.floor=1; renderRoute(); renderAlt(); if(M.nav) drawNav();
-  $("loc").textContent=M.route[toIdx].name; flash(`Arriving // ${M.route[toIdx].name}`); await sleep(700);
-}
-async function climbToFrame(){st.bitsView=false;tunnel({bits:false,sides:node(st.at).shape,speed:.35,color:"--l2"});st.floor=2;st.floors++;renderAlt();flash("Layer 2 // Data Link");sfx.floor(1);renderAll();await sleep(650);}
-async function routerArrive(){ await climbToFrame(); await sleep(250); await shedLayer("eth"); await goFloor(3); }
-async function routerDepart(toIdx,medium,smac,dmac){
-  const old=fieldVals(); st.p.ttl--; st.hops++; st.diff={ttl:String(st.p.ttl+1),ck:old.ck}; flash("TTL −1"); tunnel({color:"--alert",speed:1.4}); sfx.floor(-1); renderAll(); await sleep(900);
-  tunnel({color:"--l3",speed:.35}); await goFloor(2);
-  st.diff.dmac=st.p.dmac; st.diff.smac=st.p.smac; st.diff.fcs=old.fcs; st.p.dmac=dmac; st.p.smac=smac; st.p.fcsReady=true;
-  await addLayer("eth"); await sleep(500); if(M.snapAt===st.at) st.snapR=snapshot(); await goFloor(1); await transmit(toIdx,medium); }
-async function serverArrive(){
-  st.diff={}; await climbToFrame(); ping("MAC MATCH // ACCEPT"); await sleep(700); await shedLayer("eth"); await goFloor(3);
-  ping("IP MATCH // ACCEPT"); await sleep(700); await shedLayer("ip"); await goFloor(4); ping(""); }
-async function serverFinish(){ await shedLayer("tcp"); await goFloor(6); st.cipher=false; sfx.scramble(); ping("DECRYPTED"); renderAll(); await sleep(800); await goFloor(7); ping(M.arrivalPing); tunnel({speed:.15}); await sleep(900); }
-async function scramble(){ const src=st.plain; for(let k=1;k<=8;k++){ st.scrambleText=[...src].map(c=>c===" "||c==="\n"||Math.random()>k/8?c:"0123456789abcdef"[Math.random()*16|0]).join(""); sfx.scramble(); renderReadouts(); await sleep(140);} st.scrambleText=null; st.cipher=true; tunnel({color:"--l2"}); renderAll(); }
-function snapshot(){const f=fieldVals();return{dmac:f.dmac,smac:f.smac,sip:st.p.sip,dip:st.p.dip,ttl:f.ttl,ports:`${st.p.sport} → ${st.p.dport}`};}
-async function countdown(){ const c=$("count"); c.hidden=false; for(const t of ["3","2","1","GO"]){ c.textContent=t; t==="GO"?sfx.go():sfx.beep(); tunnel({speed:t==="GO"?6:.25+.3*(4-+t||0)}); await sleep(650);} c.hidden=true; tunnel({speed:.4}); }
-
-/* ---------- Mission 1: Send It ---------- */
-const OPT=(t,ok,ex,tech)=>({t,ok,fb:{ex,tech:tech||ex}});
-const PC={ip:"192.168.10.10",mac:"0050.79A1.0001"},R0={mac:"00D0.BA11.0001"},R1m={mac:"00D0.BA11.0002"},MAIL={ip:"10.0.20.25",mac:"0050.56C0.0025"};
-const ROUTE_TABLE_EX=`<pre class="cli">R1 // ROUTE MAP
-Everything else ....... out G0/2 toward the internet
-10.0.20.0/24 .......... out G0/1 (directly connected)
-192.168.10.0/24 ....... out G0/0 (directly connected)</pre>`;
-const ROUTE_TABLE_TECH=`<pre class="cli">R1# show ip route | begin Gateway
-Gateway of last resort is 198.51.100.1 to network 0.0.0.0
-
-S*    0.0.0.0/0 [1/0] via 198.51.100.1
-C        10.0.20.0/24 is directly connected, GigabitEthernet0/1
-L        10.0.20.1/32 is directly connected, GigabitEthernet0/1
-C        192.168.10.0/24 is directly connected, GigabitEthernet0/0
-L        192.168.10.1/32 is directly connected, GigabitEthernet0/0</pre>`;
-const MISSIONS={
-send:{num:1,title:"Send It",tag:"Become your own email and ride it, floor by floor, to the mail server.",meta:["5 stops","9 decisions","~12 min"],
- coreLabel:"YOUR EMAIL",dataName:"Email (SMTP)",intro:true,arrivalPing:"250 OK // MESSAGE ACCEPTED",snapAt:2,
- route:[{name:"Your PC",short:"YOU",kind:"Computer",ceil:7,shape:6},{name:"Switch SW1",short:"SW1",kind:"Switch",ceil:2,shape:4},{name:"Router R1",short:"R1",kind:"Router",ceil:3,shape:8},{name:"Switch SW2",short:"SW2",kind:"Switch",ceil:2,shape:4},{name:"Mail server",short:"MAIL",kind:"Mail server",ceil:7,shape:6}],
- segs:[[25,"YOUR NETWORK 192.168.10.0/24"],[75,"SERVER NETWORK 10.0.20.0/24"]],
- init(){ st.p={sip:PC.ip,dip:MAIL.ip,sport:49152,dport:"????",ttl:128,dmac:null,smac:PC.mac,fcsReady:false}; },
- scenes:[
- {short:"Floor 7",title:"You are the email now",
-  async enter(){ $("loc").textContent="Inside your PC"; tunnel({sides:6,speed:.35}); st.floor=7; renderAlt(); flash("Layer 7 // Application"); await addLayer("data"); },
-  narr:{ex:"You pressed Send, and the room fell away. You've been pulled into the network, and you ARE your email: the glowing core in the crosshair. You're on floor 7 of your computer, where the mail app lives. Your mission: get yourself to the mail server on a different network.",
-        tech:"The mail client hands the message to the OS for SMTP submission to the outgoing server, 10.0.20.25. We follow one data segment of that session down the stack."},
-  cont:"Descend", async after(){ await goFloor(6); }},
- {short:"Floor 6",title:"Scrambled for your protection",
-  async enter(){ await scramble(); },
-  narr:{ex:"Floor 6, Presentation, just scrambled you! Your words turned into what looks like random numbers. Only the mail server has the key to unscramble you.",
-        tech:"The session is protected with TLS (STARTTLS on port 587). OSI files encryption under Presentation; in TCP/IP it sits between the application and TCP. From here on, the payload is ciphertext."},
-  q:{prompt:"Why scramble your message before it leaves the computer?",
-     opts:[OPT("So nobody along the way can read it",1,"Exactly. You'll pass through devices nobody here owns. Encryption means they can carry you, but they can't read you.","Confidentiality. Every intermediate device can forward the ciphertext but can't read it, and TLS integrity checks detect tampering."),
-           OPT("To make it smaller",0,"Encryption doesn't shrink you. It actually adds a few extra bytes.","Encryption adds overhead (record header and authentication tag). Compression is a separate function."),
-           OPT("So it travels faster",0,"Encryption doesn't change your speed on the wire. It's about privacy.","Encryption has no effect on propagation or serialization speed.")]},
-  cont:"Descend", async after(){ await goFloor(5); }},
- {short:"Floor 4",title:"First wrapper: TCP",
-  async enter(){ await goFloor(4); await addLayer("tcp"); },
-  narr:{ex:"Floor 4 wraps a TCP ring around you, like an apartment number on an envelope. The destination port tells the mail server which of its programs should get you.",
-        tech:"TCP encapsulates the data into a segment. Source port 49152 is ephemeral; the destination port selects the server process. Sequence and acknowledgment numbers track delivery."},
-  q:{prompt:{ex:"Which door number (port) do mail apps use to send email to a mail server?",tech:"Which destination port does a mail client use for message submission?"},
-     opts:[OPT("587 (email submission)",1,"587 is the door mail apps use to hand outgoing email to a mail server.","Clients submit on TCP 587 with STARTTLS. Port 25 is mainly server-to-server relay."),
-           OPT("80 (web pages)",0,"Port 80 is for web pages. You're an email, so you need the mail door.","80 is HTTP. The submission service listens on 587."),
-           OPT("53 (DNS)",0,"Port 53 is DNS, the internet's phone book. Wrong door for email.","53 is DNS.")]},
-  cont:"Descend", async after(){ st.p.dport=587; renderAll(); await sleep(300); }},
- {short:"Floor 3",title:"Coordinates for the whole trip",
-  async enter(){ await goFloor(3); await addLayer("ip"); },
-  narr:{ex:"Floor 3 adds the IP ring: where you came from and where you're going, plus TTL, your energy reserve. Every router you pass through takes one point.",
-        tech:"IP encapsulates the segment into a packet: src 192.168.10.10, dst 10.0.20.25, TTL 128 (Windows default), protocol 6. Now the host chooses a next hop."},
-  q:{prompt:{ex:"Your PC is on network 192.168.10.x. The mail server is 10.0.20.25. Where do you go first?",tech:"Host is 192.168.10.10/24, gateway 192.168.10.1, destination 10.0.20.25. Next hop?"},
-     opts:[OPT("To the router (default gateway)",1,"The mail server lives in a different neighborhood, so you head for the exit door: the router. Your destination IP stays the mail server's.","Off-subnet destination, so the next hop is the default gateway. The destination IP never changes; only the next hop does."),
-           OPT("Straight to the mail server",0,"The mail server isn't on your network. You can only reach your own neighborhood directly. Everything else goes through the router.","Off-subnet hosts can't be reached directly at Layer 2."),
-           OPT("Change my destination to the router's IP",0,"Your destination IP never changes. It's where you're going in the end. The router is just the next stop.","The destination IP stays 10.0.20.25 end to end. The gateway IP is only used to resolve its MAC.")]},
-  cont:"Descend"},
- {short:"Floor 2",title:"Building your vehicle",
-  async enter(){ await goFloor(2); await addLayer("eth"); },
-  narr:{ex:"Floor 2 builds your vehicle, the Ethernet frame: the outer ring. It needs the MAC address of the very next device, and it adds a check value at the back so damage can be spotted.",
-        tech:"Ethernet II encapsulation: destination MAC, source MAC, EtherType 0x0800, 4-byte FCS (CRC-32). The ARP cache already maps 192.168.10.1 to R1's G0/0 MAC."},
-  q:{prompt:"Whose MAC address goes on your vehicle as the destination?",
-     opts:[OPT("The router's: 00D0.BA11.0001",1,"The frame only needs to reach the next stop, the router. Your IP ring still holds the final destination.","Layer 2 is hop by hop: the frame is addressed to the next hop, R1 G0/0."),
-           OPT("The mail server's: 0050.56C0.0025",0,"That address only works on the mail server's own network. Nobody on this cable has it.","The server's MAC is meaningless on this segment, and ARP doesn't cross R1."),
-           OPT("Everyone: FFFF.FFFF.FFFF",0,"Shouting to everyone is for questions. Your email goes to one specific next stop.","Data frames are unicast to the next hop.")]},
-  cont:"Descend", async after(){ st.p.dmac=R0.mac; st.p.fcsReady=true; renderAll(); await sleep(500); }},
- {short:"Floor 1",title:"You stop being a message",
-  async enter(){ await goFloor(1); st.bitsView=true; tunnel({bits:true,color:"--l1"}); renderAll(); st.snapA=snapshot(); },
-  narr:{ex:"Floor 1. Your rings dissolve into 1s and 0s. You're now a signal: tiny electrical changes racing down a copper cable. Everything is still in there, just as numbers.",
-        tech:"The NIC adds the preamble and SFD and serializes the frame. The right panel shows the actual bytes, with every checksum calculated."},
-  q:{prompt:"What is actually traveling on the cable right now?",
-     opts:[OPT("Signals that stand for bits",1,"Cables don't carry envelopes or letters, just signals. The next device rebuilds you from them.","Layer 1 moves encoded symbols. The receiver recovers bits and rebuilds the frame."),
-           OPT("A tiny copy of the email",0,"Only signals travel on the wire. You only become an email again at the other end."),
-           OPT("Just the IP address",0,"All of you is on the wire: addresses, ports and the scrambled message, as bits.")]},
-  cont:"Transmit", async after(){ await transmit(1,"copper"); }},
- {short:"Switch",title:"A two-floor building",
-  async enter(){ await climbToFrame(); },
-  narr:{ex:"A switch rebuilt you into a frame. Check your altimeter: this building only has two floors. It can read your outer ring, but it can't see inside.",
-        tech:"SW1 validates the FCS (store-and-forward) and looks up 00D0.BA11.0001 in its CAM table. A Layer 2 switch never parses past the Ethernet header."},
-  q:{multi:true,prompt:"What will the switch change about you before it sends you on?",
-     items:[["dmac","Dest MAC"],["smac","Source MAC"],["ip","IP addresses"],["ttl","TTL"],["none","Nothing changes"]],
-     check(sel){ if(sel.size===1&&sel.has("none")) return {ok:1,fb:{ex:"The switch sends you on exactly as you arrived. It reads your Dest MAC to choose a port, and that's all.",tech:"Correct. The frame is forwarded unchanged (802.1Q tagging on trunks is the exception)."}};
-       if(sel.has("ip")||sel.has("ttl")) return {fb:{ex:"A switch only reaches floor 2. IP and TTL live on floor 3, out of its reach.",tech:"IP and TTL are Layer 3. A Layer 2 switch doesn't parse them."}};
-       return {fb:{ex:"The switch only reads the MAC addresses to decide. It doesn't rewrite them.",tech:"Destination MAC for lookup, source MAC for learning. Neither is rewritten."}}; }},
-  cont:"Forward to the router", async after(){ await goFloor(1); await transmit(2,"copper"); }},
- {short:"Router",title:"Your vehicle is taken away",
-  async enter(){ await routerArrive(); },
-  narr:{ex:"Routers are three-floor buildings with octagon chambers. On floor 2, R1 checked the frame was meant for it, then threw your outer ring away! On floor 3 it reads your destination and checks its map.",
-        tech:"R1 accepted the frame on G0/0, verified the FCS, de-encapsulated, and is now doing a routing table lookup for 10.0.20.25."},
-  extra:{ex:ROUTE_TABLE_EX,tech:ROUTE_TABLE_TECH},
-  q:{prompt:"Which way out should R1 send you?",
-     opts:[OPT("Out G0/1, toward 10.0.20.0/24",1,"The map has an exact entry for the mail server's network, right on G0/1.","Longest prefix match: the connected /24 beats the default /0."),
-           OPT("The 'everything else' route to the internet",0,"That's the default route, only used when nothing more specific matches. Here something does.","A /0 is the least specific match. The /24 wins."),
-           OPT("Back out G0/0",0,"That's where you came from! The mail server isn't there.")]},
-  cont:"Prepare for the next wire"},
- {short:"Rebuild",title:"What does the router change?",
-  narr:{ex:"R1 knows the way. Before you leave, it has to prepare you for the next cable. Predict what will be different.",tech:"Predict every field R1 rewrites or recalculates before transmitting on G0/1."},
-  q:{multi:true,prompt:"Which parts of you will be different when you leave R1? Pick all that apply.",
-     items:[["dmac","Dest MAC"],["smac","Source MAC"],["sip","Source IP"],["dip","Dest IP"],["ttl","TTL"],["ports","Port numbers"],["ck","IP checksum",1],["fcs","FCS",1]],
-     check(sel){ const need=mode==="tech"?["dmac","smac","ttl","ck","fcs"]:["dmac","smac","ttl"];
-       if(sel.has("sip")||sel.has("dip")) return {fb:{ex:"Your IP addresses stay the same for the whole trip.",tech:"Without NAT, IPs are preserved end to end."}};
-       if(sel.has("ports")) return {fb:{ex:"Ports live on floor 4. A router only climbs to floor 3.",tech:"Ports are Layer 4; R1 doesn't touch the segment."}};
-       if(need.every(x=>sel.has(x))&&sel.size===need.length) return {ok:1,fb:{ex:"Your TTL drops by one, and you get a brand-new vehicle with new MAC addresses for the next cable. Your IPs and ports never change.",tech:"TTL decrements, so the IP checksum is recalculated. A new frame is built (src G0/1, dst server) with a new FCS. IPs, ports and TCP checksum are untouched."}};
-       return {fb:{ex:"Something else changes too. What happened to your old vehicle? And what does every router take from your energy?",tech:"Missing at least one. Consider TTL, what depends on the IP header, and what depends on the whole frame."}}; }},
-  cont:"Rebuild me", async after(){ await routerDepart(3,"copper",R1m.mac,MAIL.mac); }},
- {short:"Switch",title:"You know this one",
-  async enter(){ await climbToFrame(); },
-  narr:{ex:"Another switch, another two-floor building with square chambers. It reads your Dest MAC and sends you on, unchanged.",tech:"SW2 validates the FCS and forwards on 0050.56C0.0025. The frame is identical on both sides."},
-  cont:"Forward to the mail server", async after(){ await goFloor(1); await transmit(4,"copper"); }},
- {short:"Mail server",title:"Riding up",
-  async enter(){ await serverArrive(); },
-  narr:{ex:"You made it to the mail server! Now you ride up: floor 2 strips your vehicle, floor 3 strips your IP ring. One wrapper left, and it holds your door number.",
-        tech:"The server matched the destination MAC and IP, stripped L2 and L3, and handed the segment to TCP for demultiplexing."},
-  q:{prompt:"The server runs lots of programs. How does it know the mail program gets you?",
-     opts:[OPT("Destination port 587",1,"Port 587 points straight to the mail software, like an apartment number.","Demultiplexing by destination port: 587 maps to the submission service's socket."),
-           OPT("Destination MAC",0,"Your MAC was on your vehicle, and that came off on floor 2."),
-           OPT("TTL",0,"TTL is just your energy for crossing routers. It doesn't pick a program.")]},
-  cont:"Deliver me", async after(){ await serverFinish(); }}
- ],
- celebrate(){ return {eb:"Mission 1 complete",title:"Message delivered",greet:`Nice flying, ${callsign}!`,
-   sub:"Your email reached the mail server and was unscrambled on floor 6. Next, the server relays it toward your friend's inbox. That's a whole new journey.",
-   badge:"Email Courier",
-   tiles:[["Floors traveled",st.floors],["Devices crossed",4],["Wrappers on / off","4 / 4"],["TTL",`128 → ${st.p.ttl}`]],
-   learned:{ex:["Your message gets wrapped in layers on the way down and unwrapped on the way up.","Switches only read the outside. Routers unwrap one layer deeper and give you a new vehicle.","IP addresses stay the same the whole trip. MAC addresses change at every router."],
-            tech:["Encapsulation: data → segment → packet → frame → bits, reversed at the receiver.","Switches forward frames unchanged; routers rewrite L2, decrement TTL and recompute the IP checksum.","IP and ports are end to end (no NAT); MACs are hop by hop."]} }; }
-},
-
-/* ---------- Mission 2: Jakarta Run ---------- */
-jakarta:{num:2,title:"Jakarta Run",tag:"Leave campus and cross the Pacific through five routers to reach a website in Jakarta, Indonesia.",meta:["6 stops","6 decisions","~10 min"],
- coreLabel:"HTTPS REQUEST",dataName:"HTTPS request",nav:true,arrivalPing:"HTTP/1.1 200 OK",
- route:[{name:"St. Cloud, MN",short:"ST. CLOUD",kind:"Router",ceil:3,shape:8,lat:45.56,lon:-94.16,leg:{km:2450},lab:[0,10]},
-        {name:"Los Angeles",short:"L.A.",kind:"Router",ceil:3,shape:8,lat:34.05,lon:-118.24,leg:{km:9800},lab:[0,10]},
-        {name:"Guam",short:"GUAM",kind:"Router",ceil:3,shape:8,lat:13.44,lon:144.79,leg:{km:2500},lab:[10,10]},
-        {name:"Tokyo",short:"TOKYO",kind:"Router",ceil:3,shape:8,lat:35.68,lon:139.69,leg:{km:1160},lab:[10,-5]},
-        {name:"Seoul",short:"SEOUL",kind:"Router",ceil:3,shape:8,lat:37.57,lon:126.98,leg:{km:5300},lab:[-4,-6]},
-        {name:"Jakarta",short:"JAKARTA",kind:"Web server",ceil:7,shape:6,lat:-6.21,lon:106.85,lab:[0,10]}],
- init(){ st.p={sip:"198.51.100.23",dip:"203.0.113.80",sport:51514,dport:443,ttl:64,dmac:"0A1B.2C00.0001",smac:"5C26.0A11.0042",fcsReady:true};
-   st.layers=["data","tcp","ip"]; st.cipher=true; st.floor=3; st.at=0; },
- scenes:[
- {short:"Briefing",title:"Destination: Jakarta",
-  async enter(){ $("loc").textContent="St. Cloud, MN"; tunnel({sides:8,color:"--l3"}); renderAll(); renderAlt(); await countdown(); flash("Layer 3 // Network"); },
-  narr:{ex:"You're a request from a Chromebook right here on campus, asking for a shopping website whose servers are in Jakarta, Indonesia: about 15,000 km away as the crow flies. You're already wrapped and encrypted, sitting on floor 3 of the campus edge router. Next stop: the open internet.",
-        tech:"An HTTPS request (TCP 443, TLS payload) from a campus Chromebook, TTL 64 (ChromeOS default). NAT on this edge router has already translated the private source to 198.51.100.23. Destination 203.0.113.80 is the site's Jakarta front end. Addresses here are documentation examples."},
-  extra:{ex:`<pre class="cli">ST. CLOUD EDGE // ROUTE MAP
-10.10.0.0/16 .......... campus buildings
-10.20.0.0/16 .......... dorms
-Everything else ....... out to our internet provider</pre>`,
-         tech:`<pre class="cli">EDGE# show ip route | begin Gateway
-Gateway of last resort is 192.0.2.1 to network 0.0.0.0
-
-S*    0.0.0.0/0 [1/0] via 192.0.2.1
-C     10.10.0.0/16 is directly connected, GigabitEthernet0/1
-O     10.20.0.0/16 [110/2] via 10.10.0.2, GigabitEthernet0/1</pre>`},
-  q:{prompt:{ex:"This router's map has nothing about Jakarta. What should it do with you?",tech:"No specific route matches 203.0.113.80. What does the router do?"},
-     opts:[OPT("Use the default route, out to the internet provider",1,"When the map has no specific entry, the router uses its 'everything else' route: the default route. Off to the internet!","No longer match exists, so the gateway of last resort, 0.0.0.0/0, forwards the packet."),
-           OPT("Drop me, because Jakarta isn't on the map",0,"That would happen if there were no default route. This router has one, so you get to go.","Only without a default route. Then the router drops the packet and sends ICMP destination unreachable."),
-           OPT("Send me back to the Chromebook",0,"Routers don't send you back just because they don't know the exact way. The default route handles that.")]},
-  cont:"Launch", async after(){ await routerDepart(1,"fiber","5C26.0A11.0001","0A1B.2C01.0001"); }},
- {short:"Los Angeles",title:"An internet crossroads",
-  async enter(){ await routerArrive(); },
-  narr:{ex:"Los Angeles! You crossed the country as pulses of light in a fiber-optic cable. This router is a huge internet crossroads with hundreds of thousands of routes. More than one of them matches where you're going.",
-        tech:"The LA router stripped the frame and is doing a lookup in a full internet routing table (BGP). Several entries match 203.0.113.80."},
-  extra:{ex:`<pre class="cli">LOS ANGELES // ROUTE MAP (part of it)
-203.0.0.0/8 ........... toward Honolulu
-203.0.113.0/24 ........ toward Guam (Pacific cable)
-Everything else ....... toward Chicago</pre>`,
-         tech:`<pre class="cli">LAX# show ip route 203.0.113.80 longer-prefixes (abridged)
-B     203.0.0.0/8 [20/0] via 192.0.2.77     ! Honolulu
-B     203.0.113.0/24 [20/0] via 192.0.2.81  ! Guam
-B*    0.0.0.0/0 [20/0] via 192.0.2.5        ! Chicago</pre>`},
-  q:{prompt:{ex:"Your destination is 203.0.113.80. Two entries match it. Which one wins?",tech:"Which entry does longest prefix match select?"},
-     opts:[OPT("203.0.113.0/24, toward Guam",1,"The most specific match wins. /24 means the first three numbers match exactly, much closer than /8, which only matches the first number. It's like a street address beating just a country name.","Longest prefix match: /24 beats /8 beats /0, regardless of the order they're listed."),
-           OPT("203.0.0.0/8, toward Honolulu",0,"It matches, but loosely: only the first number. A more specific entry exists."),
-           OPT("Everything else, toward Chicago",0,"That's the default route. It's only used when nothing else matches.")]},
-  cont:"Cross the Pacific", async after(){ await routerDepart(2,"sea","0A1B.2C01.0002","0A1B.2C02.0001"); }},
- {short:"Guam",title:"An island in the middle of the ocean",
-  async enter(){ await routerArrive(); },
-  narr:{ex:"That was the longest leg: about 9,800 km along a cable lying on the floor of the Pacific Ocean. In deep water, these cables are about as thick as a garden hose. Welcome to Guam, a tiny island where many undersea internet cables meet.",
-        tech:"Guam is a major landing point for trans-Pacific submarine cable systems. This router will decrement TTL again before forwarding toward Tokyo."},
-  q:{prompt:"Every router takes one point of your TTL energy. Why?",
-     opts:[OPT("So a lost packet can't loop around forever",1,"If routers ever pass you in a circle by mistake, your TTL runs out and you're thrown away instead of looping forever and clogging the network.","TTL bounds packet lifetime. At 0 the router discards the packet and sends ICMP Time Exceeded (type 11), which is exactly how traceroute discovers each hop."),
-           OPT("To measure how far away Jakarta is",0,"TTL doesn't measure distance. It's a hop counter that protects the network from loops."),
-           OPT("To make you go faster",0,"Losing TTL doesn't change your speed. It's a safety limit.")]},
-  cont:"Head to Tokyo", async after(){ await routerDepart(3,"sea","0A1B.2C02.0002","0A1B.2C03.0001"); }},
- {short:"Tokyo",title:"Traffic jam!",
-  async enter(){ await routerArrive(); const q=$("queue"); q.hidden=false; tunnel({speed:0,color:"--alert"}); flash("Congestion detected");
-    for(let n=40;n>=0;n-=2){ $("qpos").innerHTML=`${n}<small>packets ahead of you</small>`; $("qfill").style.width=(60+n)+"%"; sfx.beep(); await sleep(140); }
-    st.ms+=18; renderNavStats(); q.hidden=true; tunnel({speed:.35,color:"--l3"}); },
-  narr:{ex:"Tokyo was jammed! Millions of packets were arriving at once, more than the next cable could send. You waited in the router's waiting room, called a buffer, while the line ahead shrank. That cost you 18 extra milliseconds.",
-        tech:"The egress interface toward Seoul was congested, so you sat in the output queue. Queuing delay added 18 ms of latency, and variation in that delay is jitter."},
-  q:{prompt:"The waiting room is completely full when another packet arrives. What happens to that packet?",
-     opts:[OPT("It's dropped, and the sender sends it again",1,"Full means full. The newest packet is thrown away. The sender notices it never arrived, sends it again, and slows down a little to ease the jam.","Tail drop. TCP detects the loss (duplicate ACKs or a timeout), retransmits, and shrinks its congestion window. QoS and WRED change who gets dropped and when."),
-           OPT("It waits on the cable",0,"Cables can't store packets. Once the buffer is full, there's nowhere left to wait."),
-           OPT("The router builds a bigger waiting room",0,"Buffers are fixed memory. The router can't grow them on the fly.")]},
-  cont:"Head to Seoul", async after(){ await routerDepart(4,"sea","0A1B.2C03.0002","0A1B.2C04.0001"); }},
- {short:"Seoul",title:"Last router. Time for physics.",
-  async enter(){ await routerArrive(); },
-  narr:{ex:"Seoul, the last router! Here's some physics: inside a fiber cable, light travels about 200,000 km every second. That's about two-thirds of its speed in empty space, because glass slows it down.",
-        tech:"Propagation delay in fiber ≈ distance ÷ 200,000 km/s (refractive index ≈ 1.5). Real cable paths are longer than straight-line distance."},
-  q:{prompt:"Seoul to Jakarta is about 5,300 km of cable. About how long will you take to get there?",
-     opts:[OPT("About 26 milliseconds",1,"5,300 ÷ 200,000 = 0.0265 seconds, about 26 milliseconds. A blink takes about 100 milliseconds!","5,300 km ÷ 200,000 km/s ≈ 26.5 ms one way, before any queuing or processing delay."),
-           OPT("About 3 seconds",0,"Much faster than that! Try the math: 5,300 ÷ 200,000."),
-           OPT("No time at all",0,"Even light takes time. Over long distances those milliseconds add up, which is why gamers care about ping.")]},
-  cont:"Final leg to Jakarta", async after(){ await routerDepart(5,"sea","0A1B.2C04.0002","0A1B.2C05.0080"); }},
- {short:"Jakarta",title:"Selamat datang!",
-  async enter(){ await serverArrive(); },
-  narr:{ex:"You reached the web server in Jakarta! Your wrappers are coming off as you ride up. One left, and it holds your door number.",
-        tech:"The server matched L2 and L3, stripped both, and handed the segment to TCP for demultiplexing."},
-  q:{prompt:"Which door number (port) sends you to the website software?",
-     opts:[OPT("443 (secure web)",1,"HTTPS uses port 443, the secure web door. That's why you were encrypted the whole way.","TCP 443, HTTPS. The TLS session terminates here and the request is decrypted."),
-           OPT("587 (email)",0,"That's the email door. You're asking for a website."),
-           OPT("53 (DNS)",0,"Port 53 is DNS. You need the web door.")]},
-  cont:"Deliver me", async after(){ await serverFinish(); }}
- ],
- celebrate(){ return {eb:"Mission 2 complete",title:"Arrived in Jakarta",greet:"Selamat datang di Jakarta!",
-   sub:`That means "Welcome to Jakarta!" You crossed 5 routers and the Pacific Ocean in about ${Math.round(st.ms)} milliseconds, about as long as a blink.`,
-   badge:"Pacific Navigator",
-   tiles:[["Distance",fmt(st.km)+" km"],["One-way time",Math.round(st.ms)+" ms"],["Routers crossed",st.hops],["TTL",`64 → ${st.p.ttl}`]],
-   learned:{ex:["Routers read only your destination IP and pick the next stop from their map.","The most specific route wins, and the default route catches everything else.","TTL drops at every router so lost packets can't loop forever. Distance and traffic jams add delay."],
-            tech:["Each hop: de-encapsulate, longest-prefix-match lookup, TTL−1, re-encapsulate for the next link.","Default routes forward unknown destinations; without one, the packet is dropped with ICMP unreachable.","Latency = propagation + queuing + serialization + processing. Congestion causes queuing delay and tail drop."]} }; }
-}
-};
-/* ---------- Case files: detective engine ---------- */
-MEDIUM.radio={col:"--l3",lbl:"Wi-Fi // radio waves"};
-MEDIUM.inspect={col:"--l2",lbl:"Zooming in"};
-function renderCaseFile(){
-  $("altlbl").textContent="Case file"; $("dev").textContent=M.title;
-  let li=""; for(let i=0;i<M.clueCount;i++){const c=st.clues[i];li+=`<li class="${c?"found":""}"><b>Clue ${i+1}</b>${c?esc(c):"Not found yet"}</li>`;}
-  $("casefile").innerHTML=`<p class="lbl" style="margin:0">Clues found ${st.clues.length}/${M.clueCount}</p><ul class="clues">${li}</ul><p class="fict">Training scenario. All names and addresses are made up.</p>`;
-}
-function renderRadar(){
-  let h=`<defs><linearGradient id="swp" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="var(--l3)" stop-opacity="0"/><stop offset="1" stop-color="var(--l3)" stop-opacity=".42"/></linearGradient></defs>`;
-  for(const r of [50,100,150]) h+=`<circle r="${r}" fill="none" stroke="var(--hud-faint)"/>`;
-  h+=`<g stroke="var(--hud-faint)"><line x1="-160" y1="0" x2="160" y2="0"/><line x1="0" y1="-160" x2="0" y2="160"/></g>`;
-  const a2=-.65; h+=`<g class="spin" style="animation-duration:4s"><circle r="150" fill="none"/><path d="M0 0 L150 0 A150 150 0 0 0 ${(150*Math.cos(a2)).toFixed(1)} ${(150*Math.sin(a2)).toFixed(1)} Z" fill="url(#swp)"/></g>`;
-  for(const b of st.blips){ const a=b.a*Math.PI/180,x=(Math.cos(a)*b.r).toFixed(1),y=(Math.sin(a)*b.r).toFixed(1),c=b.hot?"var(--alert)":b.ok?"var(--l3)":"var(--hud)";
-    h+=`<g transform="translate(${x},${y})">${b.hot&&!reduce?`<circle r="6" fill="none" stroke="${c}"><animate attributeName="r" values="6;20" dur="1.4s" repeatCount="indefinite"/><animate attributeName="opacity" values=".9;0" dur="1.4s" repeatCount="indefinite"/></circle>`:""}
-      <circle r="5" fill="${c}"/><text y="-11" text-anchor="middle" class="rl" fill="${c}" paint-order="stroke" stroke="var(--void)" stroke-width="4">${esc(b.l)}</text></g>`; }
-  h+=`<text y="${st.blips.length?172:5}" text-anchor="middle" class="rl" fill="var(--hud-dim)">${esc(M.scanLabel||"SCANNING")}</text>`;
-  $("reticle").innerHTML=h;
-}
-function renderEvidence(){
-  $("evtitle").textContent=st.evTitle||""; const e=st.evidence;
-  let v=e?(typeof e==="function"?e():pick(e)):null; if(typeof v==="function") v=v(); $("evbody").innerHTML=v?v:`<p class="empty">No evidence collected yet.</p>`;
-}
-$("evbody").addEventListener("click",e=>{ if(e.target.closest("[data-reveal]")){ st.revealed=true; sfx.beep(); renderEvidence(); } });
-async function travelCase(toIdx,medium){
-  const md=MEDIUM[medium]; flash(md.lbl,1600); tunnel({bits:medium==="copper",color:md.col,sides:48}); await sleep(500); sfx.warp(); tunnel({speed:8});
-  const p0=st.pos,p1=pct(toIdx),dur=reduce?80:1500,t0=performance.now();
-  await new Promise(res=>{const step=now=>{const t=Math.min(1,(now-t0)/dur);st.pos=p0+(p1-p0)*t;$("youbar").style.left=st.pos+"%";if(t<1)requestAnimationFrame(step);else res();};requestAnimationFrame(step);});
-  st.at=toIdx; tunnel({speed:.3,bits:false,color:M.accent,sides:M.route[toIdx].shape||48}); renderRoute(); $("loc").textContent=M.route[toIdx].name; flash("Arriving // "+M.route[toIdx].name); await sleep(600);
-}
-const T_=(rows,head,hot=[],ok=[])=>`<div class="evwrap"><table class="evt"><tr>${head.map(x=>`<th>${x}</th>`).join("")}</tr>${rows.map((r,i)=>`<tr class="${hot.includes(i)?"hot":ok.includes(i)?"ok":""}">${r.map(c=>`<td>${c}</td>`).join("")}</tr>`).join("")}</table></div>`;
-
-const CASES={
-/* ---- Case 1: The Phantom Hotspot ---- */
-phantom:{kind:"case",num:1,title:"Phantom Hotspot",tag:"Students in the café keep getting their accounts stolen. Hunt through the Wi-Fi airwaves for the impostor.",meta:["4 clues","Wi-Fi","~8 min"],
- accent:"--l3",scanLabel:"WI-FI SCAN",clueCount:4,icon:"wifi",
- route:[{name:"Security Office",short:"HQ",shape:6},{name:"Café airwaves",short:"CAFÉ AIR",shape:48},{name:"Café ceiling",short:"CEILING",shape:8},{name:"Window table",short:"WINDOW",shape:6}],
- scenes:[
- {short:"Briefing",title:"Accounts stolen at the café",evTitle:"Incident report",
-  evidence:{ex:`<p>Three students reported their school accounts were taken over this week.</p>${T_([["Mon","Ava T.","Café, lunch"],["Tue","Jordan K.","Café, lunch"],["Thu","Sam P.","Café, after school"]],["Day","Student","Last Wi-Fi used"])}<p>Common thread: all three used the café Wi-Fi.</p>`,
-            tech:`<p>Three account takeovers this week. Sign-in logs show valid passwords used from unfamiliar devices within an hour of each victim's café visit.</p>${T_([["Mon","ava.t","Café"],["Tue","jordan.k","Café"],["Thu","sam.p","Café"]],["Day","Account","Last location"])}`},
-  blips:[],
-  narr:{ex:"You're a security agent for the campus IT team. Three students had their school accounts stolen this week, and all three had been on the café Wi-Fi. Fly into the airwaves and find out what's going on.",
-        tech:"Account-takeover cluster correlated with café Wi-Fi use. Hypothesis: credential theft on the wireless network. Survey the RF environment."},
-  cont:"Fly into the café airwaves", async after(){ await travelCase(1,"radio"); }},
- {short:"Scan",title:"Two networks, one name",evTitle:"Wi-Fi scan",
-  evidence:{ex:()=>T_([["SCTCC-Guest","Password (WPA2)","Fair","00:1A:1E:4C:20:11"],["SCTCC-Guest","Open (none)","Very strong","7A:3F:11:9C:00:42"],["Cafe-Printer","Password (WPA2)","Weak","30:05:5C:8A:11:02"]],["Network name","Security","Signal","Hardware address"],st.clues.length>=2?[1]:[]),
-            tech:()=>T_([["SCTCC-Guest","WPA2-PSK","−62 dBm","00:1A:1E:4C:20:11"],["SCTCC-Guest","Open","−38 dBm","7A:3F:11:9C:00:42"],["Cafe-Printer","WPA2-PSK","−71 dBm","30:05:5C:8A:11:02"]],["SSID","Security","RSSI","BSSID"],st.clues.length>=2?[1]:[])},
-  blips:[{a:-35,r:120,l:"SCTCC-GUEST"},{a:150,r:55,l:"SCTCC-GUEST"},{a:70,r:140,l:"CAFE-PRINTER"}],
-  narr:{ex:"Your scanner picked up three Wi-Fi networks in the café, and two of them have the exact same name: SCTCC-Guest.",
-        tech:"Passive scan of the café shows three BSSIDs, two advertising the SSID SCTCC-Guest."},
-  q:{prompt:"Two networks are both called SCTCC-Guest. Is that allowed?",
-     opts:[OPT("Yes. Anyone can give their Wi-Fi any name",1,"Right. A Wi-Fi name proves nothing. Anyone with a phone can broadcast a network called SCTCC-Guest.","Correct. SSIDs aren't authenticated. Many real APs share one SSID for roaming, so the name alone can't separate real from fake."),
-           OPT("No. The internet blocks copies of names",0,"Nothing blocks it. Wi-Fi names aren't registered anywhere, so anyone can copy one."),
-           OPT("Only the school is allowed to use that name",0,"It may be against the rules, but nothing technically stops someone from using it. That's exactly the trick.")]},
-  clue:{ex:"A Wi-Fi name proves nothing: anyone can copy it.",tech:"SSID spoofing: the name isn't authenticated."},
-  cont:"Keep investigating"},
- {short:"Security",title:"Spot the difference",
-  narr:{ex:"Look closely at the Security column for the two SCTCC-Guest networks.",tech:"Compare the security of the two SCTCC-Guest BSSIDs."},
-  q:{prompt:"What's different about the second SCTCC-Guest?",
-     opts:[OPT("It has no password, so nothing sent over it is scrambled",1,"Exactly. On an open network, the radio signal isn't encrypted, and whoever runs it can see everything you send.","Open authentication means no WPA2/WPA3 encryption on the air, and the AP operator sees all traffic in the clear at the AP."),
-           OPT("It's faster, so it must be the newer school network",0,"A strong signal only means it's close by. That doesn't make it trustworthy."),
-           OPT("Nothing. They're the same network",0,"Check the Security and Hardware address columns. They're different devices.")]},
-  clue:{ex:"The copy has no password: no encryption.",tech:"Rogue SSID uses open auth (no WPA2/3)."},
-  cont:"Check the school's equipment", async after(){ await travelCase(2,"radio"); }},
- {short:"Ceiling",title:"Check the official gear",evTitle:"School equipment list",
-  evidence:{ex:`<p>Official café access points (mounted in the ceiling):</p>${T_([["AP-CAFE-01","00:1A:1E:4C:20:11","East ceiling"],["AP-CAFE-02","00:1A:1E:4C:20:12","West ceiling"]],["Name","Hardware address","Location"],[],[0,1])}<p>Seen in the scan but <b>not on this list</b>: <span class="revealed">7A:3F:11:9C:00:42</span></p>`,
-            tech:`<p>AP inventory, café:</p>${T_([["AP-CAFE-01","00:1A:1E:4C:20:11","East"],["AP-CAFE-02","00:1A:1E:4C:20:12","West"]],["AP","BSSID","Mount"],[],[0,1])}<p>Unknown BSSID <span class="revealed">7A:3F:11:9C:00:42</span>. 0x7A has the locally administered bit set, typical of randomized or software-defined MACs such as phone hotspots and travel routers.</p>`},
-  blips:[{a:-35,r:60,l:"AP-CAFE-01",ok:1},{a:20,r:130,l:"AP-CAFE-02",ok:1},{a:160,r:120,l:"UNKNOWN",hot:1}],
-  narr:{ex:"You flew up to the access points in the café ceiling. These are the school's real Wi-Fi boxes, and IT keeps a list of every one of them.",
-        tech:"Cross-referencing observed BSSIDs against the wireless inventory."},
-  q:{prompt:"The open SCTCC-Guest's hardware address isn't on the school's list. What does that tell you?",
-     opts:[OPT("It's a device the school doesn't own, hiding as school Wi-Fi",1,"That's called a rogue access point. Someone brought their own device and named it after the school's network.","An unknown BSSID advertising the corporate SSID is classified as a rogue AP (evil twin)."),
-           OPT("The list is probably just out of date",0,"Possible, but IT would never set up a school network with no password. Follow the evidence."),
-           OPT("It belongs to the café printer",0,"The printer shows up separately as Cafe-Printer, with its own address.")]},
-  clue:{ex:"Its hardware isn't school equipment: a rogue device.",tech:"BSSID not in AP inventory (rogue)."},
-  cont:"Follow the strongest signal", async after(){ await travelCase(3,"radio"); }},
- {short:"Window",title:"The login page",evTitle:"Page shown after joining",
-  evidence:`<div class="mock"><b>SCTCC-Guest Wi-Fi</b><span class="hl">Sign in to continue</span><span class="field">School email</span><span class="field">School password</span><span class="fakebtn">Connect</span></div><p>The real SCTCC-Guest page only has an <b>Accept the rules</b> button. It never asks for a password.</p>`,
-  blips:[{a:200,r:30,l:"BACKPACK",hot:1}],
-  narr:{ex:"The strong signal leads to a table by the window. It's coming from inside a backpack! You connect to the open network to see what students see, and this login page pops up.",
-        tech:"The signal peaks at a window table, in a backpack. Associating to the open SSID triggers a captive portal."},
-  q:{prompt:"Why would this page ask for your school password?",
-     opts:[OPT("To steal it",1,"Yes. Anyone who types their password here hands it straight to whoever owns the backpack.","Credential-harvesting captive portal. Submitted credentials go straight to the attacker."),
-           OPT("To make the Wi-Fi faster",0,"Typing a password into a page doesn't change Wi-Fi speed."),
-           OPT("Because all Wi-Fi needs your school password",0,"The real guest network never asks for it. That difference is the giveaway.")]},
-  clue:{ex:"Fake login page asks for school passwords.",tech:"Captive portal harvests credentials."},
-  cont:"Name the culprit"},
- {short:"Lineup",title:"Who's the culprit?",
-  blips:[{a:-35,r:120,l:"AP-CAFE-01",ok:1},{a:200,r:40,l:"BACKPACK",hot:1},{a:70,r:140,l:"CAFE-PRINTER"}],
-  narr:{ex:"You've found all four clues. Time to name the culprit.",tech:"Identify the threat."},
-  q:{prompt:"Which device was stealing passwords?",
-     opts:[OPT("The hotspot hidden in a backpack, pretending to be SCTCC-Guest",1,"Busted! It copied the school's Wi-Fi name, sat right next to students so it had the strongest signal, and showed a fake login page. This trick is called an evil twin.","Evil twin: attacker-controlled AP cloning a trusted SSID with open auth and a credential-harvesting portal. Wireless IPS would flag it automatically."),
-           OPT("AP-CAFE-01 in the ceiling",0,"That's the school's real access point. It's on the official list and uses a password."),
-           OPT("Cafe-Printer",0,"The printer has its own name and a password. It wasn't pretending to be anything.")]},
-  cont:"Decide how to stop it"},
- {short:"Fix",title:"Protect the students",
-  narr:{ex:"Campus security removed the backpack. Now help students protect themselves next time.",tech:"Containment done. Pick the user-facing control."},
-  q:{prompt:"What's the best advice for students?",
-     opts:[OPT("Only use the school's password-protected Wi-Fi, and never type your password into a Wi-Fi pop-up",1,"That rule alone would have stopped every account theft in this case.","Train users to avoid open SSIDs and never submit credentials to captive portals; enforce MFA so stolen passwords alone fail."),
-           OPT("Always pick the network with the strongest signal",0,"That's exactly what the attacker counted on. Being close is easy for a fake."),
-           OPT("Turn off your antivirus so Wi-Fi connects faster",0,"That would make things worse, not better.")]},
-  cont:"Close the case"}],
- celebrate(){ return {eb:"Case 1 closed",title:"Evil twin caught",greet:`Great detective work, ${callsign}!`,culprit:"Evil twin hotspot",
-   sub:"You exposed a fake Wi-Fi network hiding in a backpack. Its fake login page was collecting students' school passwords.",badge:"Wi-Fi Detective",
-   learned:{ex:["Only join Wi-Fi you recognize that uses a password (WPA2 or WPA3).","Never type your school password into a Wi-Fi pop-up page.","If two networks share a name, ask staff which one is real.","Turn on two-factor sign-in so a stolen password isn't enough."],
-            tech:["SSIDs are unauthenticated; BSSID inventory and WIPS detect rogue APs.","Open SSIDs give no over-the-air confidentiality.","Captive portals that request credentials are a classic harvesting technique.","MFA limits the impact of stolen passwords."]}}; }},
-
-/* ---- Case 2: Gone Phishing ---- */
-phish:{kind:"case",num:2,title:"Gone Phishing",tag:"A suspicious email just hit 2,400 student inboxes. Inspect it piece by piece and make the call.",meta:["4 clues","Email","~8 min"],
- accent:"--l2",scanLabel:"EMAIL SCAN",clueCount:4,icon:"mail",
- route:[{name:"Mail gateway",short:"GATEWAY",shape:6},{name:"Sender details",short:"SENDER",shape:6},{name:"Message body",short:"BODY",shape:6},{name:"Attachment bay",short:"ATTACH",shape:6}],
- scenes:[
- {short:"Briefing",title:"Flagged in quarantine",evTitle:"Suspicious email",
-  evidence:()=>emailMock(),
-  blips:[{a:-90,r:40,l:"FLAGGED",hot:1}],
-  narr:{ex:"At 7:42 this morning, the same email landed in 2,400 student inboxes. The mail gateway flagged it as suspicious but needs a detective to make the call. Fly in and inspect it piece by piece.",
-        tech:"Bulk inbound message held by the secure email gateway with a medium phishing score. Analyst review required."},
-  cont:"Inspect the sender", async after(){ await travelCase(1,"inspect"); }},
- {short:"Sender",title:"Who really sent this?",
-  blips:[{a:-120,r:110,l:"SENDER",hot:1}],
-  narr:{ex:"Look at the From line. There's a friendly name, and then the actual email address in brackets.",tech:"Examine the From header and envelope details."},
-  q:{prompt:"The name says SCTCC IT Help Desk. Is this email really from the school?",
-     opts:[OPT("No. The school's addresses end in sctcc.edu, and this one is sctcc-support-team.com",1,"Right. The display name can say anything. The part after the @ is what counts, and this one is a look-alike.","Display names are arbitrary. The From domain is a look-alike the attacker registered, so SPF and DKIM can pass: authentication proves which domain sent it, not that the domain is honest."),
-           OPT("Yes. It has SCTCC right in the name",0,"Anyone can put SCTCC in a name, or even inside a website address they buy. Check the part after the @ exactly."),
-           OPT("Yes. It looks official",0,"Looking official is easy. Logos and nice formatting can be copied in seconds.")]},
-  clue:{ex:"Look-alike sender address, not sctcc.edu.",tech:"Look-alike From domain (sctcc-support-team.com)."},
-  cont:"Read the message", async after(){ await travelCase(2,"inspect"); }},
- {short:"Urgency",title:"The countdown trick",
-  blips:[{a:-20,r:90,l:"24 HOURS",hot:1}],
-  narr:{ex:"The subject line shouts URGENT, and the message says your account will be deleted in 24 hours.",tech:"The body uses a time-pressure lure."},
-  q:{prompt:"Why would a scammer say your account will be deleted in 24 hours?",
-     opts:[OPT("To rush you so you click before you stop and think",1,"Exactly. Panic is the scammer's best tool. Real IT departments don't threaten to delete your account by email.","Urgency and fear are classic social-engineering pressure tactics that suppress careful verification."),
-           OPT("Because the school really deletes accounts that fast",0,"Schools don't delete accounts with a 24-hour email warning. The deadline is there to scare you."),
-           OPT("It's just a typo",0,"It's deliberate. The pressure is the whole point.")]},
-  clue:{ex:"Fake urgency: 'deleted in 24 hours.'",tech:"Time-pressure social engineering."},
-  cont:"Inspect the link"},
- {short:"Link",title:"Where does the button go?",
-  blips:[{a:40,r:100,l:"LINK",hot:1}],
-  narr:{ex:"The big blue button says sctcc.edu/verify. But the words on a button and where it actually goes can be different. Press Inspect link in the evidence panel to see the real destination, just like hovering your mouse over a link.",
-        tech:"Inspect the anchor's href versus its display text (hover or long-press on mobile)."},
-  q:{prompt:"Where does the button really take you?",
-     opts:[OPT("To a different website pretending to be the school",1,"Caught it. The button text says sctcc.edu, but the link goes to sctcc-edu.account-verify.co, a fake site built to collect passwords.","The href points to an attacker-controlled host (sctcc-edu.account-verify.co) mimicking the real domain."),
-           OPT("To sctcc.edu, just like the button says",0,"Press Inspect link in the evidence panel. The real address is different from the words on the button."),
-           OPT("Nowhere. It's just a picture",0,"It's a real link. Press Inspect link to see where it goes.")]},
-  clue:{ex:"The link goes to a fake site, not sctcc.edu.",tech:"Deceptive href to a look-alike host."},
-  cont:"Check the attachment", async after(){ await travelCase(3,"inspect"); }},
- {short:"Attachment",title:"Not what it seems",
-  blips:[{a:120,r:100,l:"ATTACHMENT",hot:1}],
-  narr:{ex:"There's one more thing: an attachment called Account_Notice.pdf.exe. On many computers it would just show up as Account_Notice.pdf.",
-        tech:"The attachment uses a double extension. Windows hides known extensions by default, so users see Account_Notice.pdf."},
-  q:{prompt:"What kind of file is this really?",
-     opts:[OPT("A program disguised as a PDF. The real ending is .exe",1,"Yes. The last part of a file name decides what it is. Opening it would run a program, probably malware.","Double-extension masquerading: the executable (.exe) is the true type."),
-           OPT("A PDF document",0,"The name ends in .exe, not .pdf. Only the last ending counts."),
-           OPT("A picture",0,"Look at the very end of the file name: .exe means a program.")]},
-  clue:{ex:"Attachment is a program disguised as a PDF.",tech:"Double-extension executable attachment."},
-  cont:"Make the call"},
- {short:"Verdict",title:"Your verdict",
-  blips:[{a:-120,r:110,l:"SENDER",hot:1},{a:-20,r:90,l:"24 HOURS",hot:1},{a:40,r:100,l:"LINK",hot:1},{a:120,r:100,l:"ATTACHMENT",hot:1}],
-  narr:{ex:"Four red flags. What's your verdict on this email?",tech:"Classify the message."},
-  q:{prompt:"What is this email?",
-     opts:[OPT("Phishing. Quarantine it and warn students",1,"Case cracked. A phishing email pretends to be someone you trust to steal your password or sneak malware onto your computer.","Credential phishing with a malware attachment. Purge from all mailboxes and block the sender domain and URL."),
-           OPT("A real message from the IT Help Desk",0,"Look at the clue board: fake address, fake urgency, fake link, fake PDF."),
-           OPT("Harmless advertising spam",0,"It's worse than spam. It's trying to steal passwords and install a program.")]},
-  cont:"Teach students what to do"},
- {short:"Fix",title:"If it lands in your inbox",
-  narr:{ex:"The email is quarantined. But the next one might slip through.",tech:"Pick the correct user response."},
-  q:{prompt:"What should a student do if an email like this reaches them?",
-     opts:[OPT("Don't click anything. Report it to IT",1,"Reporting helps IT block it for everyone. If you already clicked, tell IT right away and change your password.","Report via the phishing-report button or the help desk so the SOC can purge and block. If credentials were entered, reset them and revoke sessions."),
-           OPT("Reply and ask if it's real",0,"Replying talks to the scammer and tells them your address works. Check with IT another way."),
-           OPT("Forward it to friends to warn them",0,"Forwarding spreads the dangerous link. Report it instead.")]},
-  cont:"Close the case"}],
- celebrate(){ return {eb:"Case 2 closed",title:"Phish caught",greet:`Sharp eyes, ${callsign}!`,culprit:"Phishing email",
-   sub:"You spotted all four red flags and stopped a phishing email before anyone clicked.",badge:"Phish Finder",
-   learned:{ex:["Check the address after the @, not just the name.","Be suspicious of panic: urgent threats are a scammer's favorite tool.","Hover over (or long-press) links to see where they really go.","Never open attachments you weren't expecting, especially ones ending in .exe.","Report phishing instead of replying or forwarding."],
-            tech:["Display names are unauthenticated; check the domain.","SPF/DKIM/DMARC pass for look-alike domains the attacker owns.","Compare link text to href.","Double extensions disguise executables.","User reporting feeds SOC triage and purge."]}}; }},
-
-/* ---- Case 3: The 3 A.M. Signal ---- */
-beacon:{kind:"case",num:3,title:"The 3 A.M. Signal",tag:"Something in the computer lab talks to a strange server every 60 seconds, all night long. Trace it to the source.",meta:["4 clues","Malware","~8 min"],
- accent:"--l4",scanLabel:"TRAFFIC TRACE",clueCount:4,icon:"clock",
- route:[{name:"Security dashboard",short:"DASHBOARD",shape:6},{name:"Internet edge router",short:"EDGE",shape:8},{name:"Lab switch",short:"LAB SW",shape:4},{name:"Lab PC-14",short:"PC-14",shape:6}],
- scenes:[
- {short:"Dashboard",title:"Something's awake at 3 A.M.",evTitle:"Overnight traffic",
-  evidence:{ex:`${T_([["3:00:00","Lab computer","203.0.113.66","312"],["3:01:00","Lab computer","203.0.113.66","312"],["3:02:00","Lab computer","203.0.113.66","312"],["3:03:00","Lab computer","203.0.113.66","312"],["3:04:00","Lab computer","203.0.113.66","312"]],["Time","From","To","Bytes"],[0,1,2,3,4])}<p>Continues every 60 seconds until 6:00 A.M.</p>`,
-            tech:`${T_([["03:00:00","10.10.20.114","203.0.113.66:8443","312"],["03:01:00","10.10.20.114","203.0.113.66:8443","312"],["03:02:00","10.10.20.114","203.0.113.66:8443","312"],["03:03:00","10.10.20.114","203.0.113.66:8443","312"]],["Time","Src","Dst","Bytes"],[0,1,2,3])}<p>Flow records: 180 near-identical flows, fixed 60 s interval, 03:00–06:00. The lab is closed.</p>`},
-  blips:[{a:-60,r:120,l:"203.0.113.66",hot:1},{a:120,r:80,l:"LAB"}],
-  narr:{ex:"The campus security dashboard caught something odd. Every night at 3 A.M., when the lab is locked and empty, a lab computer sends a small message to an unknown server. Once a minute. All night.",
-        tech:"Flow telemetry shows periodic outbound connections from the lab subnet to an external host during closed hours."},
-  q:{prompt:"The messages go out exactly every 60 seconds, at 3 A.M. What does that suggest?",
-     opts:[OPT("A program running on a timer, not a person",1,"Right. No human sends a message exactly every 60 seconds at 3 A.M. Something on that computer is doing it by itself.","Fixed-interval, fixed-size flows with no user present indicate automated beaconing, a hallmark of malware checking in with a command server."),
-           OPT("A student working late",0,"The lab was locked and empty. And no person is that perfectly regular."),
-           OPT("Normal internet traffic",0,"Normal traffic is messy and happens when people are using the computer. This is perfectly regular and happens when nobody is.")]},
-  clue:{ex:"Perfect 60-second timer: a program, not a person.",tech:"Periodic beaconing during closed hours."},
-  cont:"Fly to the edge router", async after(){ await travelCase(1,"copper"); }},
- {short:"Edge",title:"Who's on the other end?",evTitle:"Destination check",
-  evidence:{ex:`${T_([["Address","203.0.113.66"],["Website created","3 days ago"],["Security lists","Flagged as a malware control server"],["Campus computers that contacted it","1"]],["",""],[1,2,3])}<p>For comparison, the school's learning site was contacted by 4,812 campus computers.</p>`,
-            tech:`${T_([["Host","203.0.113.66"],["Domain age","3 days"],["Threat intel","Known C2 infrastructure"],["Internal hosts contacting","1 (10.10.20.114)"]],["",""],[1,2,3])}`},
-  blips:[{a:-60,r:60,l:"203.0.113.66",hot:1}],
-  narr:{ex:"At the edge router, where campus traffic leaves for the internet, you look up the mystery destination.",tech:"Enrich the destination with registration data and threat intelligence."},
-  q:{prompt:"What makes this destination suspicious?",
-     opts:[OPT("It's brand new, flagged as dangerous, and only one computer talks to it",1,"Every one of those is a warning sign. Together they point to malware phoning home.","New infrastructure, threat-intel hit and a single internal host: consistent with command-and-control (C2)."),
-           OPT("Nothing. It's just a website",0,"Look again: security lists already flag it as a malware control server."),
-           OPT("It's far away",0,"Distance isn't the problem. Plenty of good sites are far away.")]},
-  clue:{ex:"Destination is flagged as a malware server.",tech:"Destination is known C2."},
-  cont:"Trace it to the lab", async after(){ await travelCase(2,"copper"); }},
- {short:"Switch",title:"Which port?",evTitle:"Lab switch: who's plugged in where",
-  evidence:{ex:`<p>Suspicious traffic came from hardware address <span class="revealed">E8:6A:64:14:00:0E</span></p>${T_([["Port 11","E8:6A:64:14:00:0B","PC-11"],["Port 14","E8:6A:64:14:00:0E","PC-14"],["Port 20","E8:6A:64:14:00:14","PC-20"]],["Port","Hardware address","Device"])}`,
-            tech:`<p>Router ARP: 10.10.20.114 → <span class="revealed">e86a.6414.000e</span></p><pre class="cli">LAB-SW# show mac address-table dynamic
-Vlan  Mac Address     Type     Ports
-  20  e86a.6414.000b  DYNAMIC  Gi1/0/11
-  20  e86a.6414.000e  DYNAMIC  Gi1/0/14
-  20  e86a.6414.0014  DYNAMIC  Gi1/0/20</pre>`},
-  blips:[{a:200,r:110,l:"PC-11"},{a:240,r:110,l:"PC-14",hot:1},{a:280,r:110,l:"PC-20"}],
-  narr:{ex:"Inside the lab switch, there's a list of which hardware address is plugged into which port. Match the suspicious traffic's address to a port.",
-        tech:"Map the source IP to a MAC with the router's ARP table, then find the switchport in the CAM table."},
-  q:{prompt:"Which port is the suspicious traffic coming from?",
-     opts:[OPT("Port 14 (PC-14)",1,"Match! The address ending in 0E is plugged into port 14, so that's PC-14.","e86a.6414.000e is learned on Gi1/0/14, so PC-14 is the source."),
-           OPT("Port 11 (PC-11)",0,"Port 11's address ends in 0B. Look for the one ending in 0E."),
-           OPT("Port 20 (PC-20)",0,"Port 20's address ends in 14. Look for the one ending in 0E.")]},
-  clue:{ex:"Traffic traced to switch port 14: PC-14.",tech:"Source MAC on Gi1/0/14 (PC-14)."},
-  cont:"Fly into PC-14", async after(){ await travelCase(3,"copper"); }},
- {short:"PC-14",title:"Something doesn't belong",evTitle:"Programs running on PC-14",
-  evidence:{ex:T_([["chrome.exe","C:\\Program Files\\Google\\Chrome","8:05 AM"],["explorer.exe","C:\\Windows","7:58 AM"],["svchost.exe","C:\\Windows\\System32","7:58 AM"],["svch0st.exe","C:\\Users\\student\\Downloads\\free_game_coins","2:58 AM"]],["Program","Folder","Started"]),
-            tech:T_([["chrome.exe","C:\\Program Files\\Google\\Chrome","08:05"],["explorer.exe","C:\\Windows","07:58"],["svchost.exe","C:\\Windows\\System32","07:58"],["svch0st.exe","C:\\Users\\student\\Downloads\\free_game_coins","02:58"]],["Image","Path","Start"])},
-  blips:[{a:0,r:0,l:"PC-14",hot:1}],
-  narr:{ex:"You're inside PC-14, looking at every program it's running. One of them is pretending to be something it's not.",tech:"Review running processes on the suspect host."},
-  q:{prompt:"Which program doesn't belong?",
-     opts:[OPT("svch0st.exe",1,"Got it. The real Windows program is svchost.exe, spelled with an O, and it lives in System32. This one uses a zero, lives in Downloads, and came from a 'free game coins' download.","Masquerading process: typosquatted name (zero for O), running from a user Downloads path instead of System32, started minutes before the first beacon."),
-           OPT("svchost.exe",0,"That one is real: spelled with an O and running from C:\\Windows\\System32. Look for its look-alike."),
-           OPT("chrome.exe",0,"That's a normal web browser in its normal folder.")]},
-  clue:{ex:"Fake 'svch0st.exe' from a free-game-coins download.",tech:"Masquerading process from Downloads."},
-  cont:"Name the culprit"},
- {short:"Lineup",title:"Which computer is infected?",
-  blips:[{a:200,r:110,l:"PC-11"},{a:240,r:110,l:"PC-14",hot:1},{a:280,r:110,l:"PC-20"},{a:330,r:120,l:"PRINTER"}],
-  narr:{ex:"Your clue board is full. Make the call.",tech:"Identify the compromised host."},
-  q:{prompt:"Which computer is infected?",
-     opts:[OPT("PC-14",1,"Case cracked! Someone downloaded a 'free game coins' tool that secretly installed malware. Every night it 'phoned home' to the criminals' server, waiting for instructions.","PC-14 is compromised: trojanized download, masquerading process, periodic C2 beaconing."),
-           OPT("PC-11",0,"PC-11's address didn't match the traffic."),
-           OPT("The lab printer",0,"The printer wasn't on port 14 and isn't running svch0st.exe.")]},
-  cont:"Decide what IT should do"},
- {short:"Fix",title:"Stop the infection",
-  narr:{ex:"IT needs to act before the malware does anything worse.",tech:"Choose the first containment step."},
-  q:{prompt:"What should IT do first?",
-     opts:[OPT("Disconnect PC-14 from the network, then clean it",1,"Cutting it off stops it talking to the criminals and keeps it from spreading. Then IT can wipe and reinstall it safely.","Isolate the host (shut the port or quarantine via EDR), preserve evidence, then remediate or reimage. Block the C2 address at the firewall."),
-           OPT("Shut off the internet for the whole school",0,"That stops everyone from working. Only one computer is infected."),
-           OPT("Ignore it. They're only tiny messages",0,"Tiny messages can carry big instructions, like 'steal files now.'")]},
-  cont:"Close the case"}],
- celebrate(){ return {eb:"Case 3 closed",title:"Malware hunted down",greet:`Nice tracking, ${callsign}!`,culprit:"Malware on PC-14",
-   sub:"You followed a nighttime signal from the internet edge all the way back to one infected lab computer.",badge:"Malware Hunter",
-   learned:{ex:["Free game hacks and 'free coins' downloads are a top way malware gets in.","Malware often 'phones home' on a schedule, and that pattern gives it away.","Keep updates and antivirus on.","Tell IT if your computer acts strange. Speed matters."],
-            tech:["Beaconing: fixed interval and size, odd hours.","Threat intel plus a single internal client points to C2.","IP → MAC (ARP) → switchport (CAM) traces a host.","Isolate first, then remediate; block the C2 address."]}}; }},
-
-/* ---- Case 4: Knock Knock ---- */
-knock:{kind:"case",num:4,title:"Knock Knock",tag:"Someone is hammering the school login page with thousands of guesses. Catch them, then build the firewall rule that stops them.",meta:["3 clues","Passwords","~7 min"],
- accent:"--alert",scanLabel:"LOGIN MONITOR",clueCount:3,icon:"lock",
- route:[{name:"Login server",short:"LOGIN",shape:6},{name:"Firewall",short:"FIREWALL",shape:8}],
- scenes:[
- {short:"Alarm",title:"5,000 failed logins",evTitle:"Login log (last 10 minutes)",
-  evidence:{ex:`${T_([["9:14:03.1","mia.r","FAIL","198.51.100.77"],["9:14:03.2","jordan.k","FAIL","198.51.100.77"],["9:14:03.3","ava.t","FAIL","198.51.100.77"],["9:14:03.4","sam.p","FAIL","198.51.100.77"],["9:14:03.5","lee.w","FAIL","198.51.100.77"],["9:14:05.0","dev.n","SUCCESS","10.10.4.21"]],["Time","Username","Result","Coming from"],[0,1,2,3,4],[5])}<p>…plus 4,994 more failures.</p>`,
-            tech:`${T_([["21:14:03.1","mia.r","FAIL","198.51.100.77"],["21:14:03.2","jordan.k","FAIL","198.51.100.77"],["21:14:03.3","ava.t","FAIL","198.51.100.77"],["21:14:03.4","sam.p","FAIL","198.51.100.77"],["21:14:05.0","dev.n","OK","10.10.4.21"]],["Time","User","Result","Src"],[0,1,2,3],[4])}<p>~8 attempts/s across many accounts with a few common passwords.</p>`},
-  blips:[{a:-40,r:130,l:"198.51.100.77",hot:1},{a:120,r:90,l:"STUDENTS",ok:1}],
-  narr:{ex:"An alarm on the school login server: 5,000 failed logins in 10 minutes. Someone is knocking on every door. Read the log and find out who.",
-        tech:"Authentication failure spike on the SSO server. Review the logs."},
-  q:{prompt:"Look at the 'Coming from' column. Where are the failed logins coming from?",
-     opts:[OPT("One single address: 198.51.100.77",1,"Right. Thousands of tries, all from one place.","All failures share one source address."),
-           OPT("Lots of different students",0,"Look again: almost every failure comes from the exact same address."),
-           OPT("From inside the school",0,"School addresses start with 10.10 here. 198.51.100.77 is outside, on the internet.")]},
-  clue:{ex:"All attempts come from 198.51.100.77.",tech:"Single source: 198.51.100.77."},
-  cont:"Keep reading"},
- {short:"Speed",title:"Nobody types that fast",
-  narr:{ex:"Look at the times: a new attempt every tenth of a second, trying a different username each time.",tech:"Note the rate and the username rotation."},
-  q:{prompt:"Who, or what, is making these attempts?",
-     opts:[OPT("A program automatically guessing passwords",1,"Exactly. No human can try ten logins a second. It's a program trying common passwords on lots of accounts.","Automated password spraying: a few common passwords tried across many accounts to dodge per-account lockouts."),
-           OPT("A student who forgot their password",0,"One student wouldn't try thousands of different usernames ten times a second."),
-           OPT("The server testing itself",0,"Servers don't test themselves by attacking their own logins.")]},
-  clue:{ex:"Too fast for a human: an automated guesser.",tech:"Automated password spraying."},
-  cont:"Check this alert"},
- {short:"2FA",title:"A close call",evTitle:"One account got further",
-  evidence:{ex:`${T_([["9:16:42.7","mia.r","Password correct","198.51.100.77"],["9:16:42.8","mia.r","2FA request sent to Mia's phone",""],["9:17:42.8","mia.r","2FA NOT approved: login blocked",""]],["Time","Username","What happened","Coming from"],[0],[2])}`,
-            tech:`${T_([["21:16:42.7","mia.r","Primary auth OK","198.51.100.77"],["21:16:42.8","mia.r","MFA push sent",""],["21:17:42.8","mia.r","MFA timeout: denied",""]],["Time","User","Event","Src"],[0],[2])}`},
-  blips:[{a:-40,r:130,l:"198.51.100.77",hot:1},{a:60,r:70,l:"MIA'S PHONE",ok:1}],
-  narr:{ex:"Uh oh. The attacker actually guessed Mia's password! But look at what happened next.",tech:"One account's password was guessed. Review what followed."},
-  q:{prompt:"The attacker had Mia's password. Why didn't they get in?",
-     opts:[OPT("Two-factor sign-in: they didn't have Mia's phone",1,"Two-factor sign-in saved Mia. Her password wasn't enough on its own, because the login also needed her phone. She should still change that password!","MFA blocked the login despite valid credentials. Force a password reset for mia.r."),
-           OPT("The attacker typed it wrong",0,"The log says the password was correct. Something else stopped them."),
-           OPT("The server was too busy",0,"The server answered fine. A second check stopped the attacker.")]},
-  clue:{ex:"Two-factor sign-in stopped a correct password guess.",tech:"MFA blocked a valid credential."},
-  cont:"Fly to the firewall", async after(){ await travelCase(1,"copper"); }},
- {short:"Rule",title:"Build a checkpoint",evTitle:"Firewall rules",
-  evidence:{ex:`<div class="rules"><div class="permit">1 · PERMIT everyone → login server</div></div><p>The firewall checks each visitor against these rules, top to bottom.</p>`,
-            tech:`<pre class="cli">ip access-list extended PROTECT-LOGIN
- 10 permit tcp any host 10.10.1.50 eq 443
- (implicit deny ip any any)</pre>`},
-  blips:[{a:-40,r:130,l:"198.51.100.77",hot:1},{a:120,r:90,l:"STUDENTS",ok:1}],
-  narr:{ex:"You're at the firewall, the security checkpoint between the internet and the school. Right now it lets everyone reach the login server. Add a rule to stop the attacker.",
-        tech:"Add an ACE that blocks the attacking source without impacting legitimate users."},
-  q:{prompt:"Which new rule stops the attack without locking out students?",
-     opts:[OPT("DENY traffic from 198.51.100.77",1,"Perfect. It blocks exactly one address: the attacker's.","deny ip host 198.51.100.77 any: precise and minimal."),
-           OPT("DENY everyone going to the login server",0,"That stops the attacker, but it also locks out every student and teacher. Too big a hammer."),
-           OPT("DENY the whole internet",0,"Then nobody at school could reach anything online.")]},
-  cont:"Place the rule"},
- {short:"Order",title:"Order matters",evTitle:"Rules to place",
-  evidence:{ex:`<div class="rules"><div class="deny">DENY 198.51.100.77</div><div class="permit">PERMIT everyone → login server</div></div><p>The firewall stops at the <b>first</b> rule that matches.</p>`,
-            tech:`<pre class="cli">deny   ip host 198.51.100.77 any
-permit tcp any host 10.10.1.50 eq 443</pre><p>ACEs are evaluated in sequence; first match wins.</p>`},
-  narr:{ex:"Your rule is ready. But the firewall reads rules top to bottom and stops at the first one that matches.",tech:"Sequence the ACEs correctly."},
-  q:{prompt:"Which order works?",
-     opts:[OPT("1. DENY 198.51.100.77, then 2. PERMIT everyone",1,"Right. The attacker hits the DENY rule first and gets stopped. Everyone else skips past it and matches PERMIT.","Specific deny before the broader permit, since first match wins."),
-           OPT("1. PERMIT everyone, then 2. DENY 198.51.100.77",0,"The attacker is part of 'everyone,' so they match PERMIT first and walk right in. The DENY rule never gets checked.")]},
-  cont:"Activate the firewall",
-  async after(){
-    st.evidence={ex:`<div class="rules"><div class="deny">1 · DENY 198.51.100.77 · blocked 1,204</div><div class="permit">2 · PERMIT everyone · allowed 87</div></div>`,
-                 tech:`<pre class="cli">ip access-list extended PROTECT-LOGIN
- 10 deny   ip host 198.51.100.77 any (1204 matches)
- 20 permit tcp any host 10.10.1.50 eq 443 (87 matches)</pre>`}; st.evTitle="Firewall: active"; renderAll();
-    for(let i=0;i<3;i++){ ping("DENY // 198.51.100.77"); tunnel({color:"--alert",speed:1.2}); sfx.wrong(); await sleep(650); ping("PERMIT // 10.10.4."+(21+i)); tunnel({color:"--l3",speed:.4}); sfx.beep(); await sleep(650); }
-    ping(""); }}],
- celebrate(){ return {eb:"Case 4 closed",title:"Attack blocked",greet:`Firewall locked down, ${callsign}!`,culprit:"Password guesser at 198.51.100.77",
-   sub:"You caught an automated password-guessing attack, saw two-factor sign-in save an account, and built a firewall rule that blocks the attacker while everyone else gets through.",badge:"Firewall Guardian",
-   learned:{ex:["Use long passphrases, like four random words, not 'Password123.'","Use a different password for every site.","Turn on two-factor sign-in everywhere you can.","Never approve a 2FA request you didn't start.","Firewalls check rules in order: the first match wins."],
-            tech:["Password spraying targets many accounts with common passwords.","MFA blocks valid-credential logins.","ACLs are first-match, top-down, with an implicit deny.","Put specific denies before broad permits."]}}; }}
-};
-function emailMock(){
-  const tech=mode==="tech";
-  return `<div class="mock">
-    <span class="hl">From: <b>SCTCC IT Help Desk</b> &lt;helpdesk@sctcc-support-team.com&gt;</span>
-    <span class="hl">To: All Students</span>
-    <span class="hl">Subject: <b>URGENT: Your account will be DELETED in 24 hours</b></span>
-    ${tech?`<span class="mono">Authentication-Results: spf=pass dkim=pass dmarc=pass header.from=sctcc-support-team.com</span>`:""}
-    <hr><span>Dear Student,</span><span>We detected unusual activity on your account. To avoid permanent deletion, verify your account within 24 hours.</span>
-    <span class="fakebtn">Verify at sctcc.edu/verify</span>
-    <span class="att">Attachment: Account_Notice.pdf.exe</span></div>
-    ${st.revealed?`<p>Real link destination:</p><p class="revealed">http://sctcc-edu.account-verify.co/login</p>`:`<button class="reveal" data-reveal>Inspect link</button>`}
-    ${tech?`<p class="note">SPF, DKIM and DMARC pass because the scammer owns sctcc-support-team.com. Authentication proves which domain sent a message, not that the domain is honest.</p>`:""}`;
-}
-for(const k in CASES) CASES[k].id=k;
-
-
-
-/* ---------- Keep the question and answers on screen ---------- */
-const stacked=()=>matchMedia("(max-width:900px)").matches;
-function updMore(){ const c=$("comms"); if(stacked()){ c.classList.remove("more"); return; }
-  const last=[$("actions"),$("fbwrap"),$("q"),$("extra"),$("narr")].find(e=>e&&e.getBoundingClientRect().height>0);
-  const cb=c.getBoundingClientRect().bottom-8; c.classList.toggle("more", !!last && last.getBoundingClientRect().bottom>cb+2); }
-function revealQ(){ requestAnimationFrame(()=>{ const c=$("comms");
-  if(stacked()){ const r=c.getBoundingClientRect(); const last=($("actions").lastElementChild||$("q").lastElementChild||c).getBoundingClientRect();
-    if(last.bottom>innerHeight-8||r.top<0) window.scrollTo({top:Math.max(0,scrollY+r.top-96),behavior:reduce?"auto":"smooth"}); }
-  updMore(); }); }
-function revealEnd(){ requestAnimationFrame(()=>{ const a=$("actions"); const t=a.children.length?a:$("fbwrap");
-  if(t) t.scrollIntoView({block:"nearest",behavior:reduce?"auto":"smooth"}); setTimeout(updMore,350); }); }
-
-let transitT=null;
-function transitOn(){ clearTimeout(transitT); transitT=setTimeout(()=>{ $("comms").scrollTop=0; document.body.classList.add("transit"); if(stacked()) window.scrollTo({top:0,behavior:reduce?"auto":"smooth"}); },200); }
-function transitOff(){ clearTimeout(transitT); document.body.classList.remove("transit"); }
-/* ---------- Engine ---------- */
-function fresh(){ st={idx:0,firstTry:0,streak:0,xp:0,triedWrong:false,at:0,floor:null,layers:[],bitsView:false,cipher:false,scrambleText:null,pos:0,leg:0,km:0,ms:0,hops:0,floors:0,diff:{},snapA:null,snapR:null,p:{},plain:"",plainB:[],clues:[],blips:[],evidence:null,evTitle:"",revealed:false,wrongs:0,missed:[],t0:Date.now()}; }
-function renderXP(){ $("xp").innerHTML=`${fmt(st.xp)} XP${st.streak>1?`<small>STREAK ×${st.streak}</small>`:""}`; }
-function drawFb(){ $("fbwrap").innerHTML=curFb?`<p class="fb ${curFb.ok?"ok":"no"}">${curFb.gain?`<span class="gain">+${curFb.gain} XP</span>`:""}<b>${curFb.ok?"Confirmed":"Negative"}</b> ${esc(pick(curFb.fb))}</p>`:""; }
-function drawStory(){
-  const s=M.scenes[st.idx];
-  $("eyebrow").textContent=`${M.kind==="case"?"Case":"Mission"} ${M.num} // Step ${st.idx+1} of ${M.scenes.length} // ${s.short}`; $("titletext").textContent=s.title; $("narr").textContent=pick(s.narr);
-  $("extra").innerHTML=s.extra?pick(s.extra):"";
-  const p=$("q").querySelector(".prompt"); if(p&&s.q) p.textContent=pick(s.q.prompt);
-  drawFb();
-}
-function showContinue(label,fn){ const a=$("actions"); a.innerHTML=""; const b=document.createElement("button"); b.className="go"; b.textContent=label+" ›";
-  b.onclick=async()=>{ if(busy)return; busy=true; b.disabled=true; await fn(); busy=false; }; a.appendChild(b); }
-async function run(){
-  const s=M.scenes[st.idx]; curFb=null; st.triedWrong=false; $("q").innerHTML=""; $("q")._redraw=null; $("actions").innerHTML=""; $("extra").innerHTML="";
-  if(M.kind==="case"){ if(s.evidence){st.evidence=s.evidence;st.evTitle=s.evTitle||"";} if(s.blips) st.blips=s.blips; renderAll(); }
-  $("comms").scrollTop=0; drawStory(); busy=true; if(s.enter){ transitOn(); await s.enter(); } transitOff(); busy=false;
-  if(s.q) renderQ(s); else showContinue(s.cont,next); revealQ();
-}
-async function next(){ const s=M.scenes[st.idx]; transitOn(); if(s.after) await s.after(); st.idx++; if(st.idx>=M.scenes.length){ transitOff(); celebrate(); } else run(); }
-function wrong(fb,noCount){ if(!noCount&&M&&M.scenes[st.idx]){ st.wrongs++; const sc=M.scenes[st.idx], lab=sc.short||pick(sc.title)||("Step "+(st.idx+1)); if(!st.missed.includes(lab)) st.missed.push(lab); } st.triedWrong=true; st.streak=0; renderXP(); sfx.wrong(); curFb={ok:0,fb}; drawFb(); revealEnd(); }
-function right(fb,s){ let gain;
-  if(!st.triedWrong){ st.firstTry++; st.streak++; gain=100+(st.streak>1?25*(st.streak-1):0); } else gain=40;
-  st.xp+=gain; renderXP(); sfx.right(); curFb={ok:1,fb,gain}; drawFb();
-  if(s.clue&&M.kind==="case"){ st.clues.push(pick(s.clue)); flash("Clue "+st.clues.length+" found"); renderCaseFile(); renderAll(); }
-  showContinue(s.cont,next); revealEnd(); }
-function renderQ(s){
-  const q=s.q,box=$("q"); box.innerHTML=`<p class="prompt"></p>`; box.querySelector(".prompt").textContent=pick(q.prompt);
-  const wrap=document.createElement("div");
-  if(q.multi){
-    wrap.className="chips"; const sel=new Set();
-    const draw=()=>{ wrap.innerHTML=""; if(mode==="ex") q.items.forEach(i=>{if(i[2])sel.delete(i[0]);});
-      q.items.filter(i=>!(i[2]&&mode==="ex")).forEach(([id,l])=>{ const b=document.createElement("button"); b.className="opt"; b.textContent=l; b.setAttribute("aria-pressed",sel.has(id));
-        b.onclick=()=>{ if(id==="none"){sel.clear();sel.add("none");} else {sel.delete("none"); sel.has(id)?sel.delete(id):sel.add(id);} draw(); }; wrap.appendChild(b); }); };
-    draw(); box.appendChild(wrap); box._redraw=draw;
-    const chk=document.createElement("button"); chk.className="go"; chk.textContent="Lock prediction ›";
-    chk.onclick=()=>{ if(!sel.size){wrong({ex:"Pick at least one answer first.",tech:"Select at least one option."},1);return;}
-      const r=q.check(sel); if(!r.ok){wrong(r.fb);return;}
-      [...wrap.children].forEach(b=>{b.disabled=true;if(b.getAttribute("aria-pressed")==="true"){b.classList.add("right");b.removeAttribute("aria-pressed");}}); box._redraw=null; right(r.fb,s); };
-    $("actions").innerHTML=""; $("actions").appendChild(chk);
-  } else {
-    wrap.className="opts";
-    if(!s._order){ s._order=q.opts.map((_,i)=>i); for(let i=s._order.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[s._order[i],s._order[j]]=[s._order[j],s._order[i]];} }
-    s._order.map(i=>q.opts[i]).forEach(o=>{ const b=document.createElement("button"); b.className="opt"; b.textContent=o.t;
-      b.onclick=()=>{ if(busy)return; if(o.ok){[...wrap.children].forEach(x=>x.disabled=true);b.classList.add("right");right(o.fb,s);} else {b.classList.add("wrong");wrong(o.fb);} };
-      wrap.appendChild(b); });
-    box.appendChild(wrap);
-  }
-}
-
-/* ---------- Celebration ---------- */
-function celebrate(){
-  const c=M.celebrate(), total=M.scenes.filter(s=>s.q).length, acc=st.firstTry/total;
-  const bonus=500; st.xp+=bonus; renderXP();
-  const tier=acc>=.85?["Gold","--gold"]:acc>=.6?["Silver","--silver"]:["Bronze","--bronze"];
-  lastRun={id:M.id,mode,callsign,xp:st.xp,firstTry:st.firstTry,total,tierIdx:TIERS.indexOf(tier[0]),wrongs:st.wrongs,missed:st.missed.slice(),secs:Math.round((Date.now()-st.t0)/1000),finished:Date.now()};
-  const bestKey="pq-best-"+M.id, prev=+(store.get(bestKey)||0), isBest=st.xp>prev; if(isBest) store.set(bestKey,st.xp);
-  const hexPts=[0,1,2,3,4,5].map(i=>{const a=i/6*6.283-1.5708;return `${(Math.cos(a)*64).toFixed(1)},${(Math.sin(a)*64).toFixed(1)}`;}).join(" ");
-  const starPts=[...Array(10)].map((_,i)=>{const a=i/10*6.283-1.5708,r=i%2?12:28;return `${(Math.cos(a)*r).toFixed(1)},${(Math.sin(a)*r-6).toFixed(1)}`;}).join(" ");
-  const isCase=M.kind==="case";
-  const tiles=isCase?[["Clues found",`${st.clues.length}/${M.clueCount}`],["Culprit",c.culprit]]:c.tiles;
-  $("celebody").innerHTML=`
-    <p class="eb">${esc(c.eb)}</p>
-    ${isCase?`<div class="stamp">Case closed</div>`:""}
-    <h2>${esc(c.title)}</h2>
-    <svg class="badge" viewBox="-75 -75 150 150" role="img" aria-label="${tier[0]} ${esc(c.badge)} badge">
-      <polygon points="${hexPts}" fill="var(--void)" stroke="var(${tier[1]})" stroke-width="4"/>
-      <polygon points="${hexPts}" fill="var(${tier[1]})" fill-opacity=".14" transform="scale(.82)"/>
-      <polygon points="${starPts}" fill="var(${tier[1]})"/>
-      <text y="38" text-anchor="middle" font-family="Chakra Petch" font-weight="700" font-size="10" letter-spacing="2" fill="var(${tier[1]})">${esc(c.badge.toUpperCase())}</text>
-    </svg>
-    <p class="tier" style="color:var(${tier[1]})">${tier[0]} badge // ${esc(callsign)}</p>
-    <p class="greet">${esc(c.greet)}</p>
-    <p class="sub">${esc(c.sub)}</p>
-    <div class="tiles">
-      <div class="panel tile"><span>Total XP${isBest?" · new best":""}</span><b data-count="${st.xp}">0</b></div>
-      <div class="panel tile"><span>First-try calls</span><b>${st.firstTry}/${total}</b></div>
-      ${tiles.map(t=>`<div class="panel tile"><span>${esc(t[0])}</span><b style="${String(t[1]).length>14?"font-size:1rem":""}">${esc(t[1])}</b></div>`).join("")}
-    </div>
-    <div class="panel learned"><p class="lbl">${isCase?"Stay-safe tips":"What you just learned"}</p><ul>${pick(c.learned).map(l=>`<li>${esc(l)}</li>`).join("")}</ul></div>
-    <div class="row" style="justify-content:center"><button class="go" id="c-rep">File mission report ›</button><button class="go alt" id="c-again">Fly again ›</button><button class="go alt" id="c-home">Mission select</button></div>
-    <p class="rnote" style="margin:0 auto">Class assignment: file a report for every mission. It takes about two minutes.</p>`;
-  $("cele").hidden=false; $("cele").scrollTop=0; confetti(); sfx.fanfare(); tunnel({speed:3,color:tier[1]});
-  const el=$("celebody").querySelector("[data-count]"), target=st.xp, t0=performance.now();
-  const step=now=>{const t=Math.min(1,(now-t0)/1400);el.textContent=fmt(target*(1-Math.pow(1-t,3)));if(t<1)requestAnimationFrame(step);}; requestAnimationFrame(step);
-  setTimeout(()=>tunnel({speed:.3}),2500);
-  $("c-again").textContent=isCase?"Replay case ›":"Fly again ›";
-  $("c-again").onclick=()=>{ $("cele").hidden=true; startMission(M.id); };
-  $("c-home").onclick=()=>{ $("cele").hidden=true; showSelect(); };
-  $("c-rep").onclick=openReport;
-}
-
-/* ---------- Mission select / intro ---------- */
-for(const k in MISSIONS) MISSIONS[k].id=k;
-function cardArt(id){
-  if(id==="send") return `<svg viewBox="0 0 300 84" aria-hidden="true"><g fill="none" stroke-width="2">${[0,1,2,3].map(i=>`<circle cx="150" cy="42" r="${12+i*10}" stroke="var(${["--l7","--l4","--l3","--l2"][i]})" opacity=".85"/>`).join("")}</g><rect x="140" y="35" width="20" height="14" rx="2" fill="none" stroke="var(--fg)" stroke-width="1.6"/><path d="M140 36 L150 44 L160 36" fill="none" stroke="var(--fg)" stroke-width="1.6"/></svg>`;
-  if(id==="jakarta"){ const pts=MISSIONS.jakarta.route.map(n=>{const p=prj(n.lat,n.lon);return [p.x,p.y*0.56+2];});
-    return `<svg viewBox="0 0 300 84" aria-hidden="true"><path d="M${pts.map(p=>p.join(" ")).join(" L")}" fill="none" stroke="var(--l4)" stroke-width="1.6" stroke-dasharray="4 3"/>${pts.map((p,i)=>`<circle cx="${p[0]}" cy="${p[1]}" r="${i===pts.length-1?4:2.6}" fill="var(--l4)"/>`).join("")}</svg>`; }
-  const cs=CASES[id]; if(cs){ const g={wifi:`<path d="M-12 -2 a17 17 0 0 1 24 0 M-7 3 a10 10 0 0 1 14 0" fill="none" stroke="var(${cs.accent})" stroke-width="2.4" stroke-linecap="round"/><circle cy="8" r="2.4" fill="var(${cs.accent})"/>`,
-      mail:`<rect x="-12" y="-8" width="24" height="16" rx="2" fill="none" stroke="var(${cs.accent})" stroke-width="2.2"/><path d="M-12 -7 L0 2 L12 -7" fill="none" stroke="var(${cs.accent})" stroke-width="2.2"/>`,
-      clock:`<circle r="11" fill="none" stroke="var(${cs.accent})" stroke-width="2.2"/><path d="M0 -6 V0 L5 4" fill="none" stroke="var(${cs.accent})" stroke-width="2.2" stroke-linecap="round"/>`,
-      lock:`<rect x="-9" y="-2" width="18" height="13" rx="2" fill="none" stroke="var(${cs.accent})" stroke-width="2.2"/><path d="M-5 -2 V-6 a5 5 0 0 1 10 0 V-2" fill="none" stroke="var(${cs.accent})" stroke-width="2.2"/>`}[cs.icon];
-    return `<svg viewBox="0 0 300 84" aria-hidden="true"><g transform="translate(150 40)"><circle r="26" fill="none" stroke="var(--hud)" stroke-width="3"/><line x1="19" y1="19" x2="38" y2="38" stroke="var(--hud)" stroke-width="6" stroke-linecap="round"/>${g}</g></svg>`; }
-  return "";
-}
-function showSelect(){
-  transitOff(); busy=false; $("select").hidden=false; $("select").scrollTop=0; $("intro").hidden=true; tunnel({speed:.3,color:"--l7",sides:48,bits:false});
-  const card=m=>{ const best=+(store.get("pq-best-"+m.id)||0), cs=m.kind==="case";
-    return `<button class="panel mcard" data-m="${m.id}">
-      <span class="num">${cs?"Case":"Mission"} ${m.num}</span>${cardArt(m.id)}<h3>${m.title}</h3><p>${m.tag}</p>
-      <div class="meta">${m.meta.map(x=>`<span>${x}</span>`).join("")}</div>
-      ${best?`<span class="best">Best: ${fmt(best)} XP</span>`:""}<span class="cta">${cs?"Open case ›":"Launch ›"}</span></button>`; };
-  $("cards").innerHTML=[MISSIONS.send,MISSIONS.jakarta].map(card).join("");
-  $("cases").innerHTML=Object.values(CASES).map(card).join("");
-  document.querySelectorAll("#select [data-m]").forEach(b=>b.onclick=()=>startMission(b.dataset.m));
-  $("rep").hidden=true; renderCourse();
-}
-function readCallsign(){ callsign=($("callsign").value||"").toUpperCase().replace(/[^A-Z0-9-]/g,"").slice(0,12)||"NOVA"; $("callsign").value=callsign; store.set("pq-callsign",callsign); $("pilot").textContent=callsign; }
-function startMission(id){
-  readCallsign(); M=MISSIONS[id]||CASES[id]; fresh(); if(M.init) M.init(); $("select").hidden=true; ping(""); $("queue").hidden=true;
-  M.scenes.forEach(x=>{delete x._order;});
-  const isCase=M.kind==="case";
-  $("floors").hidden=isCase; $("ceil").hidden=isCase; $("casefile").hidden=!isCase; $("ttlcard").hidden=isCase; $("evcard").hidden=!isCase;
-  $("statlbl").textContent=isCase?"Clues":"Form";
-  if(isCase){ $("loc").textContent=M.route[0].name; tunnel({color:M.accent,sides:M.route[0].shape,speed:.3,bits:false}); }
-  $("mtitle").textContent=M.title; $("navcard").hidden=!M.nav; renderXP(); renderRoute(); renderAlt(); renderAll(); if(M.nav){drawNav();renderNavStats();}
-  $("q").innerHTML=""; $("actions").innerHTML=""; $("extra").innerHTML=""; $("narr").textContent=""; $("titletext").textContent=""; $("eyebrow").textContent="";
-  if(M.intro){ showIntro(); } else if(isCase){ run(); } else { $("loc").textContent=M.route[0].name; run(); }
-}
-function showIntro(){
-  const w=$("introwrap"); w.classList.remove("zoom"); $("intro").hidden=false; $("intro").scrollTop=0;
-  $("m-from").value=callsign.toLowerCase()+"@student.lab"; const d=new Date(); $("clock").textContent=d.toLocaleTimeString([], {hour:"numeric",minute:"2-digit"});
-  tunnel({speed:.15,color:"--l7",sides:48});
-}
-$("sendbtn").onclick=async()=>{
-  const subj=$("m-subj").value.trim()||"(no subject)", body=$("m-body").value.trim()||"Hello!";
-  st.plain=`From: ${$("m-from").value}\nTo: ${$("m-to").value.trim()}\nSubject: ${subj}\n\n${body}`;
-  st.plainB=[...st.plain.replace(/\n/g,"\r\n")].map(c=>c.charCodeAt(0)&255);
-  sfx.go(); $("introwrap").classList.add("zoom"); tunnel({speed:7,color:"--hud"}); flash("Transferring you into the network",2000);
-  await sleep(1400); $("intro").hidden=true; tunnel({speed:.4}); run();
-};
-$("introback").onclick=showSelect;
-MISSIONS.jakarta.init=(orig=>function(){ orig(); st.plain="GET / HTTP/1.1\nHost: www.example-jakarta-shop.id\n\n"; st.plainB=[...st.plain.replace(/\n/g,"\r\n")].map(c=>c.charCodeAt(0)&255); })(MISSIONS.jakarta.init);
-
-
-/* ---------- Mission reports (class assignment) ---------- */
-const ORDER=["send","jakarta","phantom","phish","beacon","knock"];
-const mget=id=>MISSIONS[id]||CASES[id];
-const mlabel=m=>`${m.kind==="case"?"Case":"Mission"} ${m.num}: ${m.title}`;
-const TIERS=["Gold","Silver","Bronze"], TIERVAR=["--gold","--silver","--bronze"], TIERHEX=["#a87400","#5b6b7d","#9a5a26"];
-let lastRun=null;
-const nameKey=n=>String(n||"").trim().toLowerCase().replace(/\s+/g," ");
-const cleanName=n=>String(n||"").trim().replace(/\s+/g," ").slice(0,40);
-function loadReps(){ try{ return JSON.parse(store.get("pq-reports")||"{}")||{}; }catch(e){ return {}; } }
-function repsFor(n){ const k=nameKey(n); return k?(loadReps()[k]||{}):{}; }
-function saveRep(n,r){ const all=loadReps(), k=nameKey(n); (all[k]=all[k]||{})[r.id]=r; store.set("pq-reports",JSON.stringify(all)); }
-function studentName(){ return cleanName($("sname").value); }
-const b36=(n,w)=>Math.max(0,Math.min(Math.round(n),36**w-1)).toString(36).toUpperCase().padStart(w,"0");
-function fnv(s){ let h=0x811c9dc5; for(const c of s){ h^=c.charCodeAt(0); h=Math.imul(h,16777619)>>>0; } return h; }
-const SALT="vnu-packetquest-2026";
-const chkOf=(name,body)=>b36(fnv(nameKey(name)+"|"+body+"|"+SALT)%1679616,4);
-function codeFor(name,r){
-  const body=`${ORDER.indexOf(r.id)+1}${"GSB"[r.tierIdx]}${b36(r.firstTry,1)}${b36(r.total,1)}-${b36(r.xp/5,3)}-${b36(r.wrongs,2)}${b36(Math.ceil(r.secs/60),2)}`;
-  return `PQ${body}-${chkOf(name,body)}`;
-}
-function decodeCode(name,code){
-  const c=String(code||"").trim().toUpperCase().replace(/\s+/g,"");
-  const m=c.match(/^PQ([1-6])([GSB])([0-9A-Z])([0-9A-Z])-([0-9A-Z]{3})-([0-9A-Z]{2})([0-9A-Z]{2})-([0-9A-Z]{4})$/);
-  if(!m) return null;
-  const body=c.slice(2,-5);
-  return {valid:chkOf(name,body)===m[8], mission:mlabel(mget(ORDER[+m[1]-1])), tier:{G:"Gold",S:"Silver",B:"Bronze"}[m[2]],
-    first:parseInt(m[3],36), total:parseInt(m[4],36), xp:parseInt(m[5],36)*5, wrongs:parseInt(m[6],36), mins:parseInt(m[7],36)};
-}
-const dur=s=>{ s=Math.max(0,Math.round(s)); const m=Math.floor(s/60); return m?`${m} min ${s%60} s`:`${s} s`; };
-const when=t=>new Date(t).toLocaleString([], {year:"numeric",month:"short",day:"numeric",hour:"numeric",minute:"2-digit"});
-const modeName=m=>m==="tech"?"Technician":"Explorer";
-
-/* Downloads: resolves to the namespace or null; never blocks the game. */
-const dlP=(window.claude&&typeof window.claude.use==="function")?Promise.resolve(window.claude.use("downloads")).catch(()=>null):Promise.resolve(null);
-async function offerDownload(filename,html,msg){
-  msg.textContent="";
-  const dl=await dlP;
-  if(!dl){ /* Standalone hosting (e.g. GitHub Pages): ordinary browser download */
-    try{ const url=URL.createObjectURL(new Blob([html],{type:"text/html"})), a=document.createElement("a");
-      a.href=url; a.download=filename; a.rel="noopener"; document.body.appendChild(a); a.click(); a.remove();
-      setTimeout(()=>URL.revokeObjectURL(url),4000);
-      msg.textContent="Downloaded "+filename+". Check your Downloads folder, then upload that file to D2L.";
-    }catch(e){ msg.textContent="Downloads aren't working here. Take a screenshot of the whole report card and upload that to D2L instead."; }
-    return; }
-  try{ await dl.save({filename,data:html}); msg.textContent="Saved. Upload that file to the D2L assignment folder."; }
-  catch(e){ const c=e&&e.code;
-    msg.textContent=c==="declined"?"Download cancelled. You can try again, or screenshot the card instead."
-      :c==="rate_limited"?"A save prompt is already open. Finish that one first."
-      :"Downloads aren't working here. Take a screenshot of the whole report card and upload that to D2L instead."; }
-}
-const fileSafe=s=>s.replace(/[^A-Za-z0-9]+/g,"_").replace(/^_|_$/g,"")||"Student";
-
-/* ---- Shared report markup (in-game card and downloaded file use the same classes) ---- */
-function medal(r,light){ return `<span class="rc-medal" style="color:${light?TIERHEX[r.tierIdx]:`var(${TIERVAR[r.tierIdx]})`}">${TIERS[r.tierIdx]} badge</span>`; }
-function missionSections(r,light){
-  const m=mget(r.id);
-  return `
-  <div class="rc-grid">
-    <div><span>Mode</span><b>${modeName(r.mode)}</b></div>
-    <div><span>Total XP</span><b>${fmt(r.xp)}</b></div>
-    <div><span>First-try correct</span><b>${r.firstTry}/${r.total}</b></div>
-    <div><span>Wrong attempts</span><b>${r.wrongs}</b></div>
-    <div><span>Time in mission</span><b>${dur(r.secs)}</b></div>
-    <div><span>Completed</span><b class="sm">${esc(when(r.finished))}</b></div>
-  </div>
-  <div class="rc-sec"><h3>Steps that took more than one try</h3><p>${r.missed.length?esc(r.missed.join(" · ")):"None. Every call was right the first time."}</p></div>
-  <div class="rc-grid">
-    <div><span>Clarity (1–5)</span><b>${r.clarity}</b></div>
-    <div><span>Fun (1–5)</span><b>${r.fun}</b></div>
-    <div><span>Difficulty</span><b class="sm">${esc(r.diff)}</b></div>
-  </div>
-  <div class="rc-sec"><h3>One thing I learned</h3><p>${esc(r.learned)}</p></div>
-  <div class="rc-sec"><h3>Where I got stuck</h3><p>${esc(r.stuck)}</p></div>
-  ${r.bug?`<div class="rc-sec"><h3>Broken, wrong, or would change</h3><p>${esc(r.bug)}</p></div>`:""}
-  <div class="rc-sec"><h3>Verification code</h3><p class="rc-code">${esc(r.code)}</p></div>`;
-}
-function missionCard(r,light){
-  const m=mget(r.id);
-  return `<div class="rc-top"><div><p class="rc-eb">Packet Quest // Mission report</p><h2>${esc(mlabel(m))}</h2>
-    <p class="rc-who">${esc(r.name)} <small>callsign ${esc(r.callsign)}</small></p></div>${medal(r,light)}</div>${missionSections(r,light)}`;
-}
-function finalCard(name,reps,fin,light){
-  const rows=ORDER.map(id=>reps[id]);
-  const totXP=rows.reduce((a,r)=>a+r.xp,0), totFirst=rows.reduce((a,r)=>a+r.firstTry,0), totQ=rows.reduce((a,r)=>a+r.total,0), totS=rows.reduce((a,r)=>a+r.secs,0);
-  return `<div class="rc-top"><div><p class="rc-eb">Packet Quest // Final report · all 6 missions</p><h2>${esc(name)}</h2>
-    <p class="rc-who">Filed ${esc(when(fin.filed))}</p></div><span class="rc-medal" style="color:${light?"#0f766e":"var(--l3)"}">6 of 6 complete</span></div>
-  <div class="rc-grid">
-    <div><span>Total XP</span><b>${fmt(totXP)}</b></div>
-    <div><span>First-try correct</span><b>${totFirst}/${totQ}</b></div>
-    <div><span>Total time</span><b>${dur(totS)}</b></div>
-    <div><span>Overall rating (1–5)</span><b>${fin.overall}</b></div>
-  </div>
-  <div class="rc-tw"><table class="rc-table"><thead><tr><th>Mission</th><th>Badge</th><th>First try</th><th>XP</th><th>Time</th><th>Clarity</th><th>Fun</th><th>Difficulty</th><th>Code</th></tr></thead><tbody>
-  ${rows.map(r=>`<tr><td>${esc(mlabel(mget(r.id)))}</td><td style="color:${light?TIERHEX[r.tierIdx]:`var(${TIERVAR[r.tierIdx]})`};font-weight:700">${TIERS[r.tierIdx]}</td><td>${r.firstTry}/${r.total}</td><td>${fmt(r.xp)}</td><td>${dur(r.secs)}</td><td>${r.clarity}</td><td>${r.fun}</td><td>${esc(r.diff)}</td><td class="mono">${esc(r.code)}</td></tr>`).join("")}
-  </tbody></table></div>
-  <div class="rc-sec"><h3>Final reflection</h3>
-    <p><b>Most useful:</b> ${esc(fin.best)}<br><b>Least useful:</b> ${esc(fin.worst)}<br><b>Recommend to next semester's class:</b> ${esc(fin.rec)}</p></div>
-  <div class="rc-sec"><h3>What should change before high school students use this</h3><p>${esc(fin.change)}</p></div>
-  ${rows.map(r=>`<div class="rc-mission"><h3>${esc(mlabel(mget(r.id)))}</h3>
-    <p><b>Learned:</b> ${esc(r.learned)}</p><p><b>Stuck:</b> ${esc(r.stuck)}</p>${r.bug?`<p><b>Broken / change:</b> ${esc(r.bug)}</p>`:""}
-    <p class="rc-missed"><b>Needed more than one try:</b> ${r.missed.length?esc(r.missed.join(" · ")):"none"} · <b>Mode:</b> ${modeName(r.mode)}</p></div>`).join("")}`;
-}
-const DOC_CSS=`body{margin:0;background:#f4f6fa;color:#141a24;font:15px/1.5 "Segoe UI",system-ui,sans-serif}
-.wrap{max-width:860px;margin:24px auto;background:#fff;border:1px solid #d5dbe5;padding:24px}
-.rc-top{display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px;align-items:flex-start;border-bottom:2px solid #141a24;padding-bottom:12px;margin-bottom:14px}
-.rc-eb{margin:0;font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;color:#5b6577;font-weight:700}
-.rc-top h2{margin:2px 0;font-size:1.5rem}.rc-who{margin:0;font-weight:700}.rc-who small{font-weight:400;color:#5b6577;margin-left:6px}
-.rc-medal{border:2px solid;padding:5px 12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;font-size:.8rem}
-.rc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin:10px 0}
-.rc-grid div{border-left:3px solid #3a6fd8;padding:2px 8px}.rc-grid span{display:block;font-size:.7rem;text-transform:uppercase;letter-spacing:.1em;color:#5b6577}
-.rc-grid b{font:700 1.1rem Consolas,monospace}.rc-grid b.sm{font-size:.9rem}
-.rc-sec,.rc-mission{margin:12px 0}.rc-sec h3,.rc-mission h3{margin:0 0 4px;font-size:.78rem;text-transform:uppercase;letter-spacing:.12em;color:#3a4558}
-.rc-sec p,.rc-mission p{margin:2px 0;white-space:pre-wrap;overflow-wrap:anywhere}.rc-mission{border-top:1px solid #e1e6ee;padding-top:8px}
-.rc-missed{font-size:.85rem;color:#5b6577}.rc-code{font:700 1.15rem Consolas,monospace;letter-spacing:.05em}
-.rc-tw{overflow-x:auto}.rc-table{width:100%;border-collapse:collapse;font-size:.82rem}.rc-table th{text-align:left;background:#eef2f8;padding:5px 6px;font-size:.7rem;text-transform:uppercase;letter-spacing:.06em}
-.rc-table td{border-bottom:1px solid #e1e6ee;padding:5px 6px;vertical-align:top}.mono{font-family:Consolas,monospace;white-space:nowrap}
-footer{margin-top:18px;font-size:.75rem;color:#5b6577}@media print{body{background:#fff}.wrap{border:0;margin:0}}`;
-const docOf=(title,inner)=>`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)}</title><style>${DOC_CSS}</style></head><body><div class="wrap">${inner}<footer>Packet Quest · Virtual Networking Universe · generated ${esc(when(Date.now()))}</footer></div></body></html>`;
-
-/* ---- Form helpers ---- */
-const scale=(nm,label)=>`<fieldset><legend>${label}</legend><div class="seg">${[1,2,3,4,5].map(v=>`<label><input type="radio" name="${nm}" value="${v}"><span>${v}</span></label>`).join("")}</div></fieldset>`;
-const choice=(nm,label,vals)=>`<fieldset><legend>${label}</legend><div class="seg">${vals.map(v=>`<label><input type="radio" name="${nm}" value="${esc(v)}"><span>${esc(v)}</span></label>`).join("")}</div></fieldset>`;
-const radio=(f,nm)=>{ const x=f.querySelector(`input[name="${nm}"]:checked`); return x?x.value:""; };
-function openRep(html){ $("cele").hidden=true; $("select").hidden=true; $("rep").hidden=false; $("repbody").innerHTML=html; $("rep").scrollTop=0; }
-
-/* ---- Per-mission report ---- */
-function openReport(){
-  const r=lastRun, m=mget(r.id);
-  openRep(`<div class="hero"><p class="eb">Mission report // ${esc(mlabel(m))}</p><h1 class="rh">File your <span>report</span></h1>
-    <p>Your answers help improve Packet Quest before high school students use it. Honest beats nice: “this part confused me” is the most useful thing you can write.</p></div>
-    <form id="repform" class="panel rform" novalidate>
-      <div class="field"><label for="r-name">Your full name (as it appears in D2L)</label><input id="r-name" maxlength="40" autocomplete="name" value="${esc(studentName())}"></div>
-      ${scale("clarity","How clear was this mission? (1 = very confusing, 5 = totally clear)")}
-      ${scale("fun","How fun was it? (1 = boring, 5 = loved it)")}
-      ${choice("diff","How hard was it?",["Too easy","Just right","Too hard"])}
-      <div class="field"><label for="r-learn">One thing you learned or understand better now</label><textarea id="r-learn" maxlength="400"></textarea></div>
-      <div class="field"><label for="r-stuck">Where did you get stuck or confused? (write “nowhere” if you didn't)</label><textarea id="r-stuck" maxlength="400"></textarea></div>
-      <div class="field"><label for="r-bug">Anything broken, wrong, or that you would change? (optional)</label><textarea id="r-bug" maxlength="400"></textarea></div>
-      <p class="ferr" id="r-err" role="alert"></p>
-      <div class="row"><button class="go" type="submit">Generate report card ›</button><button class="go alt" type="button" id="r-back">Back</button></div>
-    </form>`);
-  $("r-back").onclick=()=>{ $("rep").hidden=true; $("cele").hidden=false; };
-  $("repform").onsubmit=e=>{ e.preventDefault(); const f=e.target;
-    const name=cleanName($("r-name").value), clarity=radio(f,"clarity"), fun=radio(f,"fun"), diff=radio(f,"diff"),
-      learned=$("r-learn").value.trim(), stuck=$("r-stuck").value.trim(), bug=$("r-bug").value.trim();
-    const miss=[!name.includes(" ")&&"your full name (first and last)",!clarity&&"a clarity rating",!fun&&"a fun rating",!diff&&"how hard it was",learned.length<5&&"one thing you learned",stuck.length<3&&"where you got stuck"].filter(Boolean);
-    if(miss.length){ $("r-err").textContent="Still needed: "+miss.join(", ")+"."; return; }
-    const rec={...r,name,clarity:+clarity,fun:+fun,diff,learned,stuck,bug,filed:Date.now()}; rec.code=codeFor(name,rec);
-    saveRep(name,rec); $("sname").value=name; store.set("pq-sname",name); sfx.right(); showMissionCard(rec);
-  };
-}
-function showMissionCard(rec){
-  const filed=ORDER.filter(id=>repsFor(rec.name)[id]).length;
-  openRep(`<div class="panel rcard">${missionCard(rec,false)}</div>
-    <p class="rnote"><b>${filed} of 6</b> mission reports filed for ${esc(rec.name)}. ${filed<6?"Finish all six, then open your Final Report from the mission screen and upload it to D2L.":"All six are filed. Open your Final Report from the mission screen and upload it to D2L."}</p>
-    <div class="row"><button class="go" id="r-dl">Download this report ›</button><button class="go alt" id="r-home">Back to missions</button></div>
-    <p class="rnote" id="r-msg" role="status"></p>`);
-  $("r-dl").onclick=()=>offerDownload(`PacketQuest_${fileSafe(rec.name)}_${fileSafe(mget(rec.id).title)}.html`,docOf(`${rec.name}: ${mlabel(mget(rec.id))}`,missionCard(rec,true)),$("r-msg"));
-  $("r-home").onclick=()=>{ $("rep").hidden=true; showSelect(); };
-}
-
-/* ---- Final report (all 6) ---- */
-function openFinal(){
-  const name=studentName(), reps=repsFor(name);
-  if(!ORDER.every(id=>reps[id])) return;
-  const opts=ORDER.map(id=>mlabel(mget(id)));
-  if(reps._final){ showFinalCard(name,reps,reps._final); return; }
-  const sel=(id,label)=>`<div class="field"><label for="${id}">${label}</label><select id="${id}"><option value="">Choose a mission…</option>${opts.map(o=>`<option>${esc(o)}</option>`).join("")}</select></div>`;
-  openRep(`<div class="hero"><p class="eb">Final report // ${esc(name)}</p><h1 class="rh">All six <span>complete</span></h1>
-    <p>Last step: a short reflection on the whole set. Then download your Final Report and upload it to D2L.</p></div>
-    <form id="finform" class="panel rform" novalidate>
-      ${sel("f-best","Which mission helped you learn the most?")}
-      ${sel("f-worst","Which mission helped you learn the least?")}
-      ${scale("overall","Overall, how would you rate Packet Quest? (1 = poor, 5 = excellent)")}
-      ${choice("rec","Should next semester's class use this?",["Yes","Maybe","No"])}
-      <div class="field"><label for="f-change">What should change before high school students use it?</label><textarea id="f-change" maxlength="600"></textarea></div>
-      <p class="ferr" id="f-err" role="alert"></p>
-      <div class="row"><button class="go" type="submit">Generate final report ›</button><button class="go alt" type="button" id="f-back">Back</button></div>
-    </form>`);
-  $("f-back").onclick=()=>{ $("rep").hidden=true; showSelect(); };
-  $("finform").onsubmit=e=>{ e.preventDefault(); const f=e.target;
-    const fin={best:$("f-best").value,worst:$("f-worst").value,overall:radio(f,"overall"),rec:radio(f,"rec"),change:$("f-change").value.trim(),filed:Date.now()};
-    const miss=[!fin.best&&"most useful mission",!fin.worst&&"least useful mission",!fin.overall&&"an overall rating",!fin.rec&&"whether to use it next semester",fin.change.length<5&&"what should change"].filter(Boolean);
-    if(miss.length){ $("f-err").textContent="Still needed: "+miss.join(", ")+"."; return; }
-    saveRep(name,{id:"_final",...fin}); sfx.fanfare(); confetti(); showFinalCard(name,repsFor(name),fin);
-  };
-}
-function showFinalCard(name,reps,fin){
-  openRep(`<div class="panel rcard">${finalCard(name,reps,fin,false)}</div>
-    <p class="rnote">This is the file your instructor needs. Download it and upload it to the D2L assignment folder.</p>
-    <div class="row"><button class="go" id="r-dl">Download final report ›</button><button class="go alt" id="r-redo">Redo reflection</button><button class="go alt" id="r-home">Back to missions</button></div>
-    <p class="rnote" id="r-msg" role="status"></p>`);
-  $("r-dl").onclick=()=>offerDownload(`PacketQuest_${fileSafe(name)}_FinalReport.html`,docOf(`${name}: Packet Quest final report`,finalCard(name,reps,fin,true)),$("r-msg"));
-  $("r-redo").onclick=()=>{ const all=loadReps(), k=nameKey(name); if(all[k]) delete all[k]._final; store.set("pq-reports",JSON.stringify(all)); openFinal(); };
-  $("r-home").onclick=()=>{ $("rep").hidden=true; showSelect(); };
-}
-
-/* ---- Course progress panel on the mission screen ---- */
-function renderCourse(){
-  const name=studentName(), reps=repsFor(name), n=ORDER.filter(id=>reps[id]).length;
-  $("course").innerHTML=`<p class="lbl">Class assignment // <b>${name?esc(name):"enter your name"}</b></p>
-    ${name?`<p class="cnote">Finish each mission, then press <b>File mission report</b> on the victory screen. When all six are filed, your Final Report unlocks.</p>`
-      :`<p class="cnote">Type your full name above so your mission reports are saved under your name.</p>`}
-    <div class="chips">${ORDER.map(id=>{ const r=reps[id]; return `<span class="rchip${r?" done":""}">${esc(mget(id).title)}${r?` · ${TIERS[r.tierIdx]}`:""}</span>`; }).join("")}</div>
-    <div class="row"><button class="go" id="finbtn" ${n===6?"":"disabled"}>${n===6?"Open final report ›":`Final report · ${n}/6 filed`}</button>
-      ${n?`<button class="go alt" id="viewreps">View my reports</button>`:""}</div>`;
-  $("finbtn").onclick=openFinal;
-  if($("viewreps")) $("viewreps").onclick=()=>{
-    openRep(`<div class="hero"><p class="eb">Mission reports // ${esc(name)}</p><h1 class="rh">Your <span>reports</span></h1></div>
-      ${ORDER.filter(id=>reps[id]).map(id=>`<div class="panel rcard">${missionCard(reps[id],false)}</div>`).join("")}
-      <div class="row"><button class="go alt" id="r-home">Back to missions</button></div>`);
-    $("r-home").onclick=()=>{ $("rep").hidden=true; showSelect(); };
-  };
-  document.querySelectorAll("#select [data-m]").forEach(b=>{ const f=b.querySelector(".filed"); if(f) f.remove();
-    if(reps[b.dataset.m]){ const s=document.createElement("span"); s.className="filed"; s.textContent="✓ Report filed"; b.insertBefore(s,b.querySelector(".cta")); } });
-}
-
-/* ---- Instructor: check a report code ---- */
-function openChecker(){
-  openRep(`<div class="hero"><p class="eb">Instructor tools</p><h1 class="rh">Check a <span>code</span></h1>
-    <p>Type the student's name exactly as it appears on the report, and one verification code from it. The code holds the real results, so an edited report won't match.</p></div>
-    <form id="chkform" class="panel rform" novalidate>
-      <div class="field"><label for="k-name">Student name</label><input id="k-name" maxlength="40"></div>
-      <div class="field"><label for="k-code">Verification code</label><input id="k-code" maxlength="30" placeholder="PQ1G67-1C9-0112-AB3D" style="text-transform:uppercase"></div>
-      <div class="row"><button class="go" type="submit">Check ›</button><button class="go alt" type="button" id="k-back">Back</button></div>
-      <div id="k-out" role="status"></div>
-    </form>`);
-  $("k-back").onclick=()=>{ $("rep").hidden=true; showSelect(); };
-  $("chkform").onsubmit=e=>{ e.preventDefault(); const d=decodeCode($("k-name").value,$("k-code").value), o=$("k-out");
-    if(!d){ o.innerHTML=`<p class="fb no"><b>Not a code</b> That doesn't match the Packet Quest code format. Check for typos (0 vs O, 1 vs I).</p>`; return; }
-    o.innerHTML=`<p class="fb ${d.valid?"ok":"no"}"><b>${d.valid?"Valid":"Does not match"}</b> ${d.valid?"This code was generated for this name.":"Either the name is spelled differently than when the report was filed, or the code was changed."}</p>
-      <div class="rc-grid"><div><span>Mission</span><b class="sm">${esc(d.mission)}</b></div><div><span>Badge</span><b>${d.tier}</b></div><div><span>First try</span><b>${d.first}/${d.total}</b></div>
-      <div><span>XP</span><b>${fmt(d.xp)}</b></div><div><span>Wrong attempts</span><b>${d.wrongs}</b></div><div><span>Minutes</span><b>${d.mins}</b></div></div>`;
-  };
-}
-$("sname").addEventListener("input",()=>{ store.set("pq-sname",studentName()); renderCourse(); });
-$("chkbtn").onclick=openChecker;
-
-/* ---------- Controls ---------- */
-function setMode(m){ mode=m; store.set("pq-mode",m);
-  for(const [a,b] of [["s-ex","s-tech"]]){ $(a).setAttribute("aria-pressed",m==="ex"); $(b).setAttribute("aria-pressed",m==="tech"); }
-  if(M&&st){ renderAll(); if(st.idx<M.scenes.length) drawStory(); if($("q")._redraw) $("q")._redraw(); } }
-$("s-ex").onclick=()=>setMode("ex"); $("s-tech").onclick=()=>setMode("tech");
-function toggleSound(){ soundOn=!soundOn; $("snd").setAttribute("aria-pressed",soundOn); $("s-snd").setAttribute("aria-pressed",soundOn); $("s-snd").textContent=soundOn?"Sound on":"Sound off"; if(soundOn) sfx.beep(); }
-$("comms").addEventListener("scroll",updMore,{passive:true}); addEventListener("resize",updMore);
-$("snd").onclick=toggleSound; $("s-snd").onclick=toggleSound;
-$("home").onclick=()=>{ if(busy) return; showSelect(); };
-$("callsign").value=store.get("pq-callsign")||"NOVA"; $("sname").value=store.get("pq-sname")||"";
-M=MISSIONS.send; fresh(); M.init(); renderRoute(); renderAlt(); renderAll(); setMode(mode); showSelect();
-(()=>{ let framed=false; try{ framed=window.self!==window.top; }catch(e){ framed=true; }
-  if(!framed||window.claude) return;
-  $("fg-open").href=location.href; $("framegate").hidden=false;
-  $("fg-stay").onclick=()=>{ $("framegate").hidden=true; }; })();
+/* profile */
+let savedT;
+function saved(){ $("saved").textContent="Saved on this computer"; clearTimeout(savedT); savedT=setTimeout(()=>$("saved").textContent="",1800); }
+function setMode(m){ store.set("pq-mode",m); $("m-ex").setAttribute("aria-pressed",m==="ex"); $("m-tech").setAttribute("aria-pressed",m==="tech");
+  $("hint").innerHTML=m==="tech"?"<b>Technician</b> adds networking-class detail: real Cisco commands, every header field, and CCNA terms. Same missions and questions.":"<b>Explorer</b> uses plain language and everyday comparisons, with only the key details. Best for first-timers. Same missions and questions."; }
+function setMotion(c){ store.set("pq-motion",c?"calm":"full"); document.body.classList.toggle("calm",c); $("mo-calm").setAttribute("aria-pressed",c); $("mo-full").setAttribute("aria-pressed",!c); }
+$("sname").value=store.get("pq-sname")||""; $("callsign").value=store.get("pq-callsign")||"";
+$("sname").addEventListener("input",()=>{ store.set("pq-sname",$("sname").value.trim().replace(/\s+/g," ").slice(0,40)); saved(); render(); });
+$("callsign").addEventListener("input",()=>{ const v=$("callsign").value.toUpperCase().replace(/[^A-Z0-9-]/g,"").slice(0,12); $("callsign").value=v; if(v) store.set("pq-callsign",v); saved(); });
+$("m-ex").onclick=()=>{setMode("ex");saved();}; $("m-tech").onclick=()=>{setMode("tech");saved();};
+$("mo-calm").onclick=()=>{setMotion(true);saved();}; $("mo-full").onclick=()=>{setMotion(false);saved();};
+setMode(store.get("pq-mode")==="tech"?"tech":"ex"); setMotion(store.get("pq-motion")!=="full");
+document.addEventListener("click",e=>{ const a=e.target.closest("a[data-mode]"); if(a){ setMode(a.dataset.mode); } });
+$("unlock").onclick=()=>{ store.set("pq-unlock",store.get("pq-unlock")==="1"?"0":"1"); render(); };
+addEventListener("pageshow",render); addEventListener("storage",render);
+render();
 })();
 </script>
-
-</body></html></body>
+</body>
 </html>
